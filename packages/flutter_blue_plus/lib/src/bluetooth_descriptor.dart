@@ -9,7 +9,7 @@ class BluetoothDescriptor {
   final Guid? primaryServiceUuid;
   final Guid serviceUuid;
   final Guid characteristicUuid;
-  final int instanceId; 
+  final int instanceId;
   final Guid descriptorUuid;
 
   BluetoothDescriptor({
@@ -73,7 +73,7 @@ class BluetoothDescriptor {
       .map((p) => p.value);
 
   /// Retrieves the value of a specified descriptor
-  Future<List<int>> read({int timeout = 15}) async {
+  Future<List<int>> read({Duration timeout = const Duration(seconds: 15)}) async {
     // check connected
     if (device.isDisconnected) {
       throw FlutterBluePlusException(
@@ -131,7 +131,7 @@ class BluetoothDescriptor {
   }
 
   /// Writes the value of a descriptor
-  Future<void> write(List<int> value, {int timeout = 15}) async {
+  Future<void> write(List<int> value, {Duration timeout = const Duration(seconds: 15)}) async {
     // check connected
     if (device.isDisconnected) {
       throw FlutterBluePlusException(

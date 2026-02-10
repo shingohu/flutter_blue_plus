@@ -106,7 +106,7 @@ class BluetoothCharacteristic {
   }
 
   /// read a characteristic
-  Future<List<int>> read({int timeout = 15}) async {
+  Future<List<int>> read({Duration timeout = const Duration(seconds: 15)}) async {
     // check connected
     if (device.isDisconnected) {
       throw FlutterBluePlusException(
@@ -173,7 +173,9 @@ class BluetoothCharacteristic {
   ///         3. Interrupted transfers can leave the characteristic in a partially written state
   ///         4. If the mtu is small, it is very very slow.
   Future<void> write(List<int> value,
-      {bool withoutResponse = false, bool allowLongWrite = false, int timeout = 15}) async {
+      {bool withoutResponse = false,
+      bool allowLongWrite = false,
+      Duration timeout = const Duration(seconds: 15)}) async {
     //  check args
     if (withoutResponse && allowLongWrite) {
       throw ArgumentError("cannot longWrite withoutResponse, not allowed on iOS or Android");
@@ -239,7 +241,8 @@ class BluetoothCharacteristic {
   ///   - If a characteristic supports both notifications and indications,
   ///     we use notifications. This is a limitation of CoreBluetooth on iOS.
   ///   - [forceIndications] Android Only. force indications to be used instead of notifications.
-  Future<bool> setNotifyValue(bool notify, {int timeout = 15, bool forceIndications = false}) async {
+  Future<bool> setNotifyValue(bool notify,
+      {Duration timeout = const Duration(seconds: 15), bool forceIndications = false}) async {
     // check connected
     if (device.isDisconnected) {
       throw FlutterBluePlusException(

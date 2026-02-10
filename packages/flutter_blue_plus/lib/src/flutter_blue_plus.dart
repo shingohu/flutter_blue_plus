@@ -115,7 +115,7 @@ class FlutterBluePlus {
   }
 
   /// Turn on Bluetooth (Android only),
-  static Future<void> turnOn({int timeout = 60}) async {
+  static Future<void> turnOn({Duration timeout = const Duration(seconds: 60)}) async {
     var responseStream = FlutterBluePlusPlatform.instance.onTurnOnResponse;
 
     // Start listening now, before invokeMethod, to ensure we don't miss the response
@@ -143,8 +143,8 @@ class FlutterBluePlus {
   static Stream<BluetoothAdapterState> get adapterState async* {
     // get current state if needed
     if (_adapterStateNow == null) {
-      var result =
-          await _invokePlatform(() => FlutterBluePlusPlatform.instance.getAdapterState(BmBluetoothAdapterStateRequest()));
+      var result = await _invokePlatform(
+          () => FlutterBluePlusPlatform.instance.getAdapterState(BmBluetoothAdapterStateRequest()));
       // update _adapterStateNow if it is still null after the await
       _adapterStateNow ??= result.adapterState;
     }
@@ -525,7 +525,8 @@ class FlutterBluePlus {
             [FlutterBluePlusPlatform.instance.onDescriptorRead, FlutterBluePlusPlatform.instance.onDescriptorWritten])
         .listen((r) {
       if (r.success == true) {
-        String key = "${r.primaryServiceUuid ?? ""}:${r.serviceUuid}:${r.characteristicUuid}:${r.instanceId}:${r.descriptorUuid}";
+        String key =
+            "${r.primaryServiceUuid ?? ""}:${r.serviceUuid}:${r.characteristicUuid}:${r.instanceId}:${r.descriptorUuid}";
         _lastDescs[r.remoteId] ??= {};
         _lastDescs[r.remoteId]![key] = r.value;
       }
@@ -565,7 +566,7 @@ class FlutterBluePlus {
 
   /// Turn off Bluetooth (Android only),
   @Deprecated('Deprecated in Android SDK 33 with no replacement')
-  static Future<void> turnOff({int timeout = 10}) async {
+  static Future<void> turnOff({Duration timeout = const Duration(seconds: 10)}) async {
     var responseStream =
         FlutterBluePlusPlatform.instance.onAdapterStateChanged.where((p) => p.adapterState == BmAdapterStateEnum.off);
 
