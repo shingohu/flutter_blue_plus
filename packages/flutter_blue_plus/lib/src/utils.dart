@@ -34,10 +34,10 @@ extension FirstWhereOrNullExtension<T> on Iterable<T> {
 }
 
 extension FutureTimeout<T> on Future<T> {
-  Future<T> fbpTimeout(int seconds, String function) {
-    return timeout(Duration(seconds: seconds), onTimeout: () {
+  Future<T> fbpTimeout(Duration duration, String function) {
+    return timeout(duration, onTimeout: () {
       throw FlutterBluePlusException(
-          ErrorPlatform.fbp, function, FbpErrorCode.timeout.index, "Timed out after ${seconds}s");
+          ErrorPlatform.fbp, function, FbpErrorCode.timeout.index, "Timed out after ${duration.inMilliseconds}ms");
     });
   }
 

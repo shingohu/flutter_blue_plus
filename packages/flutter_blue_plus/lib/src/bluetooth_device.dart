@@ -158,10 +158,8 @@ class BluetoothDevice {
 
       // only wait for connection if we weren't already connected
       if (changed && !autoConnect) {
-        BmConnectionStateResponse response = await futureState
-            .fbpEnsureAdapterIsOn("connect")
-            .fbpTimeout(timeout.inSeconds, "connect")
-            .catchError((e) async {
+        BmConnectionStateResponse response =
+            await futureState.fbpEnsureAdapterIsOn("connect").fbpTimeout(timeout, "connect").catchError((e) async {
           if (e is FlutterBluePlusException && e.code == FbpErrorCode.timeout.index) {
             FlutterBluePlusPlatform.log("[FBP] connection timeout");
             await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance
@@ -205,7 +203,7 @@ class BluetoothDevice {
   ///     https://issuetracker.google.com/issues/37121040
   ///     From testing, 2 second delay appears to be enough.
   Future<void> disconnect({
-    int timeout = 35,
+    Duration timeout = const Duration(seconds: 35),
     bool queue = true,
     int androidDelay = 2000,
   }) async {
@@ -259,7 +257,8 @@ class BluetoothDevice {
   ///   - [subscribeToServicesChanged] Android & Linux Only: If true, after discovering services we will subscribe
   ///     to the Services Changed Characteristic (0x2A05) used for the `device.onServicesReset` stream.
   ///     Note: this behavior happens automatically on iOS and cannot be disabled
-  Future<List<BluetoothService>> discoverServices({bool subscribeToServicesChanged = true, int timeout = 15}) async {
+  Future<List<BluetoothService>> discoverServices(
+      {bool subscribeToServicesChanged = true, Duration timeout = const Duration(seconds: 15)}) async {
     // check connected
     if (isDisconnected) {
       throw FlutterBluePlusException(
@@ -367,7 +366,7 @@ class BluetoothDevice {
   }
 
   /// Read the RSSI of connected remote device
-  Future<int> readRssi({int timeout = 15}) async {
+  Future<int> readRssi({Duration timeout = const Duration(seconds: 15)}) async {
     // check connected
     if (isDisconnected) {
       throw FlutterBluePlusException(
@@ -411,7 +410,8 @@ class BluetoothDevice {
   /// Request to change MTU (Android Only)
   ///  - returns new MTU
   ///  - [predelay] adds delay to avoid race conditions on some peripherals. see comments below.
-  Future<int> requestMtu(int desiredMtu, {double predelay = 0.35, int timeout = 15}) async {
+  Future<int> requestMtu(int desiredMtu,
+      {double predelay = 0.35, Duration timeout = const Duration(seconds: 15)}) async {
     // check android
     if (kIsWeb || !Platform.isAndroid) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "requestMtu", FbpErrorCode.androidOnly.index, "android-only");
@@ -535,7 +535,7 @@ class BluetoothDevice {
 
   /// Force the bonding popup to show now (Android Only)
   /// Note! calling this is usually not necessary!! The platform does it automatically.
-  Future<void> createBond({int timeout = 90, Uint8List? pin}) async {
+  Future<void> createBond({Duration timeout = const Duration(seconds: 90), Uint8List? pin}) async {
     // check android
     if (kIsWeb || !Platform.isAndroid) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "createBond", FbpErrorCode.androidOnly.index, "android-only");
@@ -582,7 +582,7 @@ class BluetoothDevice {
   }
 
   /// Remove bond (Android Only)
-  Future<void> removeBond({int timeout = 30}) async {
+  Future<void> removeBond({Duration timeout = const Duration(seconds: 30)}) async {
     // check android
     if (kIsWeb || !Platform.isAndroid) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "removeBond", FbpErrorCode.androidOnly.index, "android-only");
