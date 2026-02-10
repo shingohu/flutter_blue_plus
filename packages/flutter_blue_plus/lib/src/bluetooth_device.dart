@@ -110,11 +110,11 @@ class BluetoothDevice {
         (mtu == null) || !autoConnect, "mtu and auto connect are incompatible");
 
     // make sure no one else is calling disconnect
-    _Mutex dmtx = _MutexFactory.getMutexForKey("disconnect");
+    _Mutex dmtx = _MutexFactory.getMutexForKey("disconnect-${remoteId.str}");
     bool dtook = await dmtx.take();
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     try {
@@ -209,11 +209,11 @@ class BluetoothDevice {
     int androidDelay = 2000,
   }) async {
     // Only allow a single disconnect operation at a time
-    _Mutex dtx = _MutexFactory.getMutexForKey("disconnect");
+    _Mutex dtx = _MutexFactory.getMutexForKey("disconnect-${remoteId.str}");
     await dtx.take();
 
     // Only allow a single ble operation to be underway at a time?
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     if (queue) {
       await mtx.take();
     }
@@ -270,7 +270,7 @@ class BluetoothDevice {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     List<BluetoothService> result = [];
@@ -389,7 +389,7 @@ class BluetoothDevice {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     int rssi = 0;
@@ -442,7 +442,7 @@ class BluetoothDevice {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     // predelay
@@ -578,7 +578,7 @@ class BluetoothDevice {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     try {
@@ -622,7 +622,7 @@ class BluetoothDevice {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     try {

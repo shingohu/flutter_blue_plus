@@ -114,7 +114,7 @@ class BluetoothCharacteristic {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     // return value
@@ -186,7 +186,7 @@ class BluetoothCharacteristic {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     try {
@@ -252,7 +252,7 @@ class BluetoothCharacteristic {
     }
 
     // Only allow a single ble operation to be underway at a time
-    _Mutex mtx = _MutexFactory.getMutexForKey("global");
+    _Mutex mtx = _MutexFactory.getMutexForKey("global-${remoteId.str}");
     await mtx.take();
 
     try {
