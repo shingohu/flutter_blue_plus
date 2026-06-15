@@ -500,6 +500,26 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
       );
     }
 
+    // Emit synthetic CCCD descriptor write event.
+    // Web Bluetooth API's startNotifications/stopNotifications internally write
+    // to the CCCD, but never trigger onDescriptorWritten. The Dart layer waits
+    // for this event or it times out.
+    // See: https://github.com/chipweinberger/flutter_blue_plus/issues/1147
+    _onDescriptorWrittenController.add(
+      BmDescriptorData(
+        remoteId: device.remoteId,
+        primaryServiceUuid: null,
+        serviceUuid: request.serviceUuid,
+        characteristicUuid: request.characteristicUuid,
+        instanceId: request.instanceId,
+        descriptorUuid: Guid("00002902-0000-1000-8000-00805f9b34fb"),
+        value: request.enable ? [1, 0] : [0, 0],
+        success: true,
+        errorCode: 0,
+        errorString: '',
+      ),
+    );
+
     return true;
   }
 
