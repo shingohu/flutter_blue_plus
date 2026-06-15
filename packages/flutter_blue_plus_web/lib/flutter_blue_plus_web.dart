@@ -548,6 +548,14 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
         );
       }
 
+      for (final keyword in request.withKeywords) {
+        filters.add(
+          BluetoothLEScanFilterInit(
+            namePrefix: keyword,
+          ),
+        );
+      }
+
       for (final manufacturerData in request.withMsd) {
         filters.add(
           BluetoothLEScanFilterInit(
