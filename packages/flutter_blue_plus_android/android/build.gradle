@@ -2,7 +2,6 @@ group 'com.jmx.flutter_blue_plus'
 version '1.0'
 
 apply plugin: 'com.android.library'
-apply from: new File(project.projectDir, "license_ping.gradle")
 
 android {
     compileSdkVersion = flutter.compileSdkVersion

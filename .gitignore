@@ -32,3 +32,8 @@ build/
 .pub/
 
 /packages/flutter_blue_plus/example/android/app/.cxx/
+
+# FlutterBluePlus License files (excluded - we use BSD license)
+LICENSE.md
+NOTICE.md
+license_ping.gradle

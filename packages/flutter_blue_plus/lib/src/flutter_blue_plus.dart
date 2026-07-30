@@ -489,7 +489,7 @@ class FlutterBluePlus {
       if (r.adapterState == BmAdapterStateEnum.on) {
         for (DeviceIdentifier d in _autoConnect) {
           BluetoothDevice(remoteId: d)
-              .connect(license: License.nonprofit, autoConnect: true, mtu: null)
+              .connect(autoConnect: true, mtu: null)
               .onError((e, s) {
             if (logLevel != LogLevel.none) {
               FlutterBluePlusPlatform.log("[FBP] [AutoConnect] connection failed: $e");
@@ -525,7 +525,7 @@ class FlutterBluePlus {
           if (_autoConnect.contains(r.remoteId)) {
             if (_adapterStateNow == BmAdapterStateEnum.on) {
               var d = BluetoothDevice(remoteId: r.remoteId);
-              d.connect(license: License.nonprofit, autoConnect: true, mtu: null).onError((e, s) {
+              d.connect(autoConnect: true, mtu: null).onError((e, s) {
                 if (logLevel != LogLevel.none) {
                   FlutterBluePlusPlatform.log("[FBP] [AutoConnect] connection failed: $e");
                 }

@@ -23,15 +23,20 @@ dependencies:
   # use a constrained range instead of an exact version:
   #  - avoids pub.dev warnings about pinned dependencies
   #  - still forces all platform packages to a specific version
-  flutter_blue_plus_platform_interface: '>=9.0.3 <9.0.4'
-  flutter_blue_plus_android: '>=9.0.3 <9.0.4'
-  flutter_blue_plus_darwin: '>=9.0.3 <9.0.4'
-  flutter_blue_plus_linux: '>=9.0.3 <9.0.4'
-  flutter_blue_plus_web: '>=9.0.3 <9.0.4'
+  flutter_blue_plus_platform_interface:
+    path: ../flutter_blue_plus_platform_interface
+  flutter_blue_plus_android:
+    path: ../flutter_blue_plus_android
+  flutter_blue_plus_darwin:
+    path: ../flutter_blue_plus_darwin
+  flutter_blue_plus_linux:
+    path: ../flutter_blue_plus_linux
+  flutter_blue_plus_web:
+    path: ../flutter_blue_plus_web
   flutter_blue_plus_winrt: '>=0.0.20'
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
 

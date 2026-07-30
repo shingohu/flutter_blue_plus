@@ -6,10 +6,8 @@
 
 ## 2.3.9
 * **[Android]** rename `com.lib.flutter_blue_plus` to `com.jmx.flutter_blue_plus`
-* **[LICENSE]** add `Corporate` tier for 250+ employees
 
 ## 2.3.8
-* **[LICENSE]** clarify build-time license ping in the FlutterBluePlus License
 
 ## 2.3.7
 * **[Fix]** pub.dev dependency resolution error (regression 2.3.6)
@@ -17,11 +15,7 @@
 ## 2.3.6
 * **[Fix]** Darwin: crash when calling `setOptions` with a single argument (regression 2.3.0)
 
-## 2.3.5
-* **[LICENSE]** add license ping during build: package name & app name
-
 ## 2.3.4
-* **[Improve]** Rename: `License.free` to `Licenese.nonprofit` for clarity
 
 ## 2.3.3
 * **[Improve]** add back `winrt` dependency now that it is updated
@@ -52,17 +46,10 @@ dependencies:
 ## 2.2.2
 * **[Fix]** Web: allow `autoConnect` when adapter state is unknown
 
-## 2.2.1
-* **[LICENSE]** clarifications to the development exemption
-
-## 2.2.0
-* **[LICENSE]** new tiers based on company size & development exemption
-
 ## 2.1.1
 * **[Fix]** Darwin: nil-guard rssi to prevent crash (#1318)
 
 ## 2.1.0
-* **[LICENSE]** commercial license is now required for 15 or more employees
 * **[Feature]** endorse `flutter_blue_plus_winrt` package
 
 ## 2.0.2
@@ -72,7 +59,6 @@ dependencies:
 * **[Fix]** allow calling `connect(autoConnect:true)` even when the adapter is turned off
 
 ## 2.0.0
-* **[LICENSE]** switch to FlutterBluePlus license. 
 
 ## 1.36.8
 * **[Fix]** Dart: `isNotifying` was broken (regression 1.36.2)

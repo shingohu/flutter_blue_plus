@@ -94,7 +94,6 @@ class BluetoothDevice {
   bool get isDisconnected => isConnected == false;
 
   /// Establishes a connection to the Bluetooth Device.
-  ///   [license] required to comply with the FlutterBluePlus License. See enum.
   ///   [timeout] if timeout occurs, cancel the connection request and throw exception
   ///   [mtu] Android only. Request a larger mtu right after connection, if set.
   ///   [autoConnect] reconnect whenever the device is found
@@ -104,7 +103,6 @@ class BluetoothDevice {
   ///      - auto connect results in a slower connection process compared to a direct connection
   ///        because it relies on the internal scheduling of background scans.
   Future<void> connect({
-    required License license,
     Duration timeout = const Duration(seconds: 35),
     int? mtu = 512,
     bool autoConnect = false,
@@ -738,22 +736,3 @@ class BluetoothDevice {
   BluetoothDevice.fromProto(BmBluetoothDevice p) : remoteId = p.remoteId;
 }
 
-/// License type for using FlutterBluePlus.
-/// See the LICENSE file in the root of the project for full terms.
-enum License {
-  /// Nonprofit use under the FlutterBluePlus License, for:
-  /// - Personal use
-  /// - Nonprofits
-  /// - Educational institutions
-  nonprofit,
-
-  /// Renamed to [License.nonprofit].
-  @Deprecated('Use License.nonprofit instead')
-  free,
-
-  /// Commercial use under the FlutterBluePlus License, required for:
-  /// - Any commercial use
-  /// - For-profit organizations
-  /// This is a paid license. See LICENSE for purchasing details.
-  commercial,
-}

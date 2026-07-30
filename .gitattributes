@@ -1,0 +1,4 @@
+# Exclude FlutterBluePlus license files from future merges
+LICENSE.md merge=keep-ours
+NOTICE.md merge=keep-ours
+license_ping.gradle merge=keep-ours
