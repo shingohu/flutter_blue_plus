@@ -46,7 +46,7 @@ class FlutterBluePlus {
 
   /// FlutterBluePlus log level
   static LogLevel _logLevel = LogLevel.debug;
-  static OperationQueueMode _operationQueueMode = OperationQueueMode.global;
+  static OperationQueueMode _operationQueueMode = OperationQueueMode.perDevice;
 
   ////////////////////
   //  Public
@@ -617,19 +617,11 @@ class FlutterBluePlus {
 
   /// invoke a platform method
   static Future<T> _invokePlatform<T>(Future<T> Function() invoke) async {
-    // only allow 1 invocation at a time (guarantees that hot restart finishes)
-    _Mutex mtx = _MutexFactory.getMutexForKey("invokeMethod");
-    await mtx.take();
+    // initialize
+    await _initFlutterBluePlus();
 
-    try {
-      // initialize
-      await _initFlutterBluePlus();
-
-      // invoke
-      return await invoke();
-    } finally {
-      mtx.give();
-    }
+    // invoke
+    return await invoke();
   }
 
   /// Turn off Bluetooth (Android only),
