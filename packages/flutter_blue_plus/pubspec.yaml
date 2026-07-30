@@ -34,6 +34,8 @@ dependencies:
   flutter_blue_plus_web:
     path: ../flutter_blue_plus_web
   flutter_blue_plus_winrt: '>=0.0.20'
+  flutter_blue_plus_ohos:
+    path: ../flutter_blue_plus_ohos
 
 dev_dependencies:
   flutter_lints: ^6.0.0
@@ -55,3 +57,5 @@ flutter:
         default_package: flutter_blue_plus_web
       windows:
         default_package: flutter_blue_plus_winrt
+      ohos:
+        default_package: flutter_blue_plus_ohos
