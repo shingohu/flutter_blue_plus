@@ -574,7 +574,7 @@ class BmWriteCharacteristicRequest {
     data['instance_id'] = instanceId;
     data['write_type'] = writeType.index;
     data['allow_long_write'] = allowLongWrite ? 1 : 0;
-    data['value'] = Uint8List.fromList(value);
+    data['value'] = (value is Uint8List) ? value : Uint8List.fromList(value);
     data.removeWhere((key, value) => value == null);
     return data;
   }
@@ -607,7 +607,7 @@ class BmWriteDescriptorRequest {
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
     data['descriptor_uuid'] = descriptorUuid.str;
-    data['value'] = Uint8List.fromList(value);
+    data['value'] = (value is Uint8List) ? value : Uint8List.fromList(value);
     data.removeWhere((key, value) => value == null);
     return data;
   }

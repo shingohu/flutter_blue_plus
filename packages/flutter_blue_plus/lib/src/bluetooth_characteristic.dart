@@ -20,6 +20,11 @@ class BluetoothCharacteristic {
   ///  - Web: index within `BlueZGattService` -> characteristics
   final int instanceId;
 
+  // cached filtered response streams (avoid per-call .where() allocation)
+  Stream<BmCharacteristicData>? _cachedOnReceivedStream;
+  Stream<BmCharacteristicData>? _cachedOnWrittenStream;
+  Stream<BmDescriptorData>? _cachedOnDescriptorWrittenStream;
+
   /// for convenience
   Guid get uuid => characteristicUuid;
   BluetoothDevice get device => BluetoothDevice(remoteId: remoteId);
@@ -143,15 +148,15 @@ class BluetoothCharacteristic {
         instanceId: instanceId,
       );
 
-      var responseStream = FlutterBluePlusPlatform.instance.onCharacteristicReceived
-          .where((p) => p.remoteId == request.remoteId)
-          .where((p) => p.primaryServiceUuid == request.primaryServiceUuid)
-          .where((p) => p.serviceUuid == request.serviceUuid)
-          .where((p) => p.characteristicUuid == request.characteristicUuid)
-          .where((p) => p.instanceId == request.instanceId);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmCharacteristicData> futureResponse = responseStream.first;
+      Future<BmCharacteristicData> futureResponse =
+          (_cachedOnReceivedStream ??= FlutterBluePlusPlatform.instance.onCharacteristicReceived
+              .where((p) => p.remoteId == remoteId)
+              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
+              .where((p) => p.serviceUuid == serviceUuid)
+              .where((p) => p.characteristicUuid == characteristicUuid)
+              .where((p) => p.instanceId == instanceId))
+          .first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readCharacteristic(request));
@@ -219,15 +224,15 @@ class BluetoothCharacteristic {
         value: value,
       );
 
-      var responseStream = FlutterBluePlusPlatform.instance.onCharacteristicWritten
-          .where((p) => p.remoteId == request.remoteId)
-          .where((p) => p.primaryServiceUuid == request.primaryServiceUuid)
-          .where((p) => p.serviceUuid == request.serviceUuid)
-          .where((p) => p.characteristicUuid == request.characteristicUuid)
-          .where((p) => p.instanceId == instanceId);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmCharacteristicData> futureResponse = responseStream.first;
+      Future<BmCharacteristicData> futureResponse =
+          (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onCharacteristicWritten
+              .where((p) => p.remoteId == remoteId)
+              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
+              .where((p) => p.serviceUuid == serviceUuid)
+              .where((p) => p.characteristicUuid == characteristicUuid)
+              .where((p) => p.instanceId == instanceId))
+          .first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeCharacteristic(request));
@@ -285,16 +290,16 @@ class BluetoothCharacteristic {
 
       // Notifications & Indications are configured by writing to the
       // Client Characteristic Configuration Descriptor (CCCD)
-      Stream<BmDescriptorData> responseStream = FlutterBluePlusPlatform.instance.onDescriptorWritten
-          .where((p) => p.remoteId == request.remoteId)
-          .where((p) => p.primaryServiceUuid == request.primaryServiceUuid)
-          .where((p) => p.serviceUuid == request.serviceUuid)
-          .where((p) => p.characteristicUuid == request.characteristicUuid)
-          .where((p) => p.descriptorUuid == cccdUuid)
-          .where((p) => p.instanceId == instanceId);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse = responseStream.first;
+      Future<BmDescriptorData> futureResponse =
+          (_cachedOnDescriptorWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
+              .where((p) => p.remoteId == remoteId)
+              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
+              .where((p) => p.serviceUuid == serviceUuid)
+              .where((p) => p.characteristicUuid == characteristicUuid)
+              .where((p) => p.descriptorUuid == cccdUuid)
+              .where((p) => p.instanceId == instanceId))
+          .first;
 
       // invoke
       bool hasCCCD =

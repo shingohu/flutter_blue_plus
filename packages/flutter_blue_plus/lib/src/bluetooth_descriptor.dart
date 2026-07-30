@@ -12,6 +12,10 @@ class BluetoothDescriptor {
   final int instanceId;
   final Guid descriptorUuid;
 
+  // cached filtered response streams (avoid per-call .where() allocation)
+  Stream<BmDescriptorData>? _cachedOnReadStream;
+  Stream<BmDescriptorData>? _cachedOnWrittenStream;
+
   /// for convenience
   Guid get uuid => descriptorUuid;
   BluetoothDevice get device => BluetoothDevice(remoteId: remoteId);
@@ -117,16 +121,16 @@ class BluetoothDescriptor {
         descriptorUuid: descriptorUuid,
       );
 
-      Stream<BmDescriptorData> responseStream = FlutterBluePlusPlatform.instance.onDescriptorRead
-          .where((p) => p.remoteId == request.remoteId)
-          .where((p) => p.primaryServiceUuid == request.primaryServiceUuid)
-          .where((p) => p.serviceUuid == request.serviceUuid)
-          .where((p) => p.characteristicUuid == request.characteristicUuid)
-          .where((p) => p.instanceId == instanceId)
-          .where((p) => p.descriptorUuid == request.descriptorUuid);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse = responseStream.first;
+      Future<BmDescriptorData> futureResponse =
+          (_cachedOnReadStream ??= FlutterBluePlusPlatform.instance.onDescriptorRead
+              .where((p) => p.remoteId == remoteId)
+              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
+              .where((p) => p.serviceUuid == serviceUuid)
+              .where((p) => p.characteristicUuid == characteristicUuid)
+              .where((p) => p.instanceId == instanceId)
+              .where((p) => p.descriptorUuid == descriptorUuid))
+          .first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readDescriptor(request));
@@ -173,16 +177,16 @@ class BluetoothDescriptor {
         value: value,
       );
 
-      Stream<BmDescriptorData> responseStream = FlutterBluePlusPlatform.instance.onDescriptorWritten
-          .where((p) => p.remoteId == request.remoteId)
-          .where((p) => p.primaryServiceUuid == request.primaryServiceUuid)
-          .where((p) => p.serviceUuid == request.serviceUuid)
-          .where((p) => p.characteristicUuid == request.characteristicUuid)
-          .where((p) => p.instanceId == instanceId)
-          .where((p) => p.descriptorUuid == request.descriptorUuid);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse = responseStream.first;
+      Future<BmDescriptorData> futureResponse =
+          (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
+              .where((p) => p.remoteId == remoteId)
+              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
+              .where((p) => p.serviceUuid == serviceUuid)
+              .where((p) => p.characteristicUuid == characteristicUuid)
+              .where((p) => p.instanceId == instanceId)
+              .where((p) => p.descriptorUuid == descriptorUuid))
+          .first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeDescriptor(request));
