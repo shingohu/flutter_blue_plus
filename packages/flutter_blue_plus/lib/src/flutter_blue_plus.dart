@@ -103,6 +103,17 @@ class FlutterBluePlus {
   /// The current operation queue mode. See: setOperationQueueMode
   static OperationQueueMode get operationQueueMode => _operationQueueMode;
 
+  /// BLE permission helper.
+  ///
+  /// Provides methods to request/check BLE permissions, manage Bluetooth
+  /// adapter state, and handle platform-specific requirements.
+  ///
+  /// ```dart
+  /// await FlutterBluePlus.blePermission.requestPermission();
+  /// bool ready = await FlutterBluePlus.blePermission.isReady();
+  /// ```
+  static BlePermission get blePermission => BlePermission.instance;
+
   /// Sets how BLE operations are queued.
   ///
   /// Call this before starting any other BLE work.

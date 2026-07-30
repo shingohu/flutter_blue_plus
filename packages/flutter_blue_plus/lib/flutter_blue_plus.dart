@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:ble_permission/ble_permission.dart';
 import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart';
 
 export 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart'

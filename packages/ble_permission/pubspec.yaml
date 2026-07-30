@@ -1,0 +1,22 @@
+name: ble_permission
+description: BLE permission helper for flutter_blue_plus.
+version: 0.0.1
+
+environment:
+  sdk: '>=3.1.1 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.shingo.ble
+        pluginClass: BLEPermissionPlugin
+      ios:
+        pluginClass: BLEPermissionPlugin
+      ohos:
+        pluginClass: BLEPermissionPlugin

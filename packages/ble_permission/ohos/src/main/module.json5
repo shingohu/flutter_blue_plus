@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "ble_permission",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet"
+    ],
+    "requestPermissions": [
+    ]
+  }
+}
