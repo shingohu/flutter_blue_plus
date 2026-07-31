@@ -30,6 +30,7 @@ import access from '@ohos.bluetooth.access';
 import BleDevice from './BleDevice'
 import HexUtil from './HexUtil'
 import TextUtils from "./TextUtils"
+import BinaryProtocolHandler from './BinaryProtocolHandler'
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { geoLocationManager } from '@kit.LocationKit';
 
@@ -43,6 +44,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
   public readonly ENABLE_INDICATION_VALUE: Uint8Array = new Uint8Array([0x02, 0x00]);
   public readonly DISABLE_NOTIFICATION_VALUE: Uint8Array = new Uint8Array([0x00, 0x00]);
   private channel: MethodChannel | null = null;
+  private binaryHandler: BinaryProtocolHandler | null = null;
   private context: common.Context | null = null;
   private mConnectedDevices: Map<string, ble.GattClientDevice> = new Map<string, ble.GattClientDevice>();
   private mCurrentlyConnectingDevices: Map<string, ble.GattClientDevice> = new Map();
@@ -68,9 +70,15 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
   onAttachedToEngine(binding: FlutterPluginBinding): void {
     this.channel = new MethodChannel(binding.getBinaryMessenger(), "flutter_blue_plus/methods");
     this.channel.setMethodCallHandler(this);
+    this.binaryHandler = new BinaryProtocolHandler();
+    this.binaryHandler.register(binding, this);
   }
 
   onDetachedFromEngine(binding: FlutterPluginBinding): void {
+    if (this.binaryHandler != null) {
+      this.binaryHandler.unregister();
+      this.binaryHandler = null;
+    }
     if (this.channel != null) {
       this.channel.setMethodCallHandler(null)
     }
@@ -1197,6 +1205,369 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
       let error: string = e.message
       return;
     }
+  }
+
+  /**
+   * Binary channel implementation of writeCharacteristic.
+   * Mirrors the "writeCharacteristic" MethodChannel case, returning
+   * {success, errorCode, errorString} instead of using MethodResult.
+   */
+  public async binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+      characteristicUuid: string, instanceId: number, writeType: number, value: Uint8Array):
+      Promise<Map<string, number | string>> {
+    let result: Map<string, number | string> = new Map<string, number | string>();
+    result.set("success", 0);
+    result.set("errorCode", 0);
+    result.set("errorString", "");
+    // check connection
+    let gatt: ble.GattClientDevice = this.mConnectedDevices.get(remoteId) as ble.GattClientDevice;
+    if (gatt == null) {
+      this.log(hilog.LogLevel.ERROR, "binaryWriteCharacteristic failed: device is disconnected");
+      result.set("errorCode", 1);
+      result.set("errorString", "device is disconnected");
+      return result;
+    }
+    let gattServices: ble.GattService[] = await gatt.getServices();
+    let found: ChrFound =
+      await this.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
+        gattServices) as ChrFound;
+    if (found?.error != null) {
+      this.log(hilog.LogLevel.ERROR, `binaryWriteCharacteristic failed: ${found.error}`);
+      result.set("errorCode", 2);
+      result.set("errorString", found.error);
+      return result;
+    }
+    let characteristic: ble.BLECharacteristic | null = found.characteristic;
+    // Add null check for characteristic
+    if (characteristic == null) {
+      this.log(hilog.LogLevel.ERROR, "binaryWriteCharacteristic failed: characteristic not found");
+      result.set("errorCode", 2);
+      result.set("errorString", "Characteristic not found");
+      return result;
+    }
+    let writeTypeInt: number = writeType;
+    let allowLongWrite: boolean = false;
+    let gattWriteType: number = writeTypeInt == 0 ? ble.GattWriteType.WRITE : ble.GattWriteType.WRITE_NO_RESPONSE;
+    if (gattWriteType == ble.GattWriteType.WRITE) {
+      if (!characteristic?.properties?.write) {
+        this.log(hilog.LogLevel.ERROR, "binaryWriteCharacteristic failed: WRITE property not supported");
+        result.set("errorCode", 3);
+        result.set("errorString", "The WRITE property is not supported by this BLE characteristic");
+        return result;
+      }
+    } else {
+      if (!characteristic?.properties?.writeNoResponse) {
+        this.log(hilog.LogLevel.ERROR, "binaryWriteCharacteristic failed: WRITE_NO_RESPONSE property not supported");
+        result.set("errorCode", 3);
+        result.set("errorString", "The WRITE_NO_RESPONSE property is not supported by this BLE characteristic");
+        return result;
+      }
+    }
+    // check maximum payload
+    let maxLen: number = this.getMaxPayload(remoteId, gattWriteType, allowLongWrite);
+    let dataLen: number = value.length as number;
+    if (dataLen > maxLen) {
+      let a: string = writeTypeInt == 0 ? "withResponse" : "withoutResponse";
+      let str: string =
+        "data longer than allowed. dataLen: " + dataLen + " > max: " + maxLen + " (" + a + ")";
+      this.log(hilog.LogLevel.ERROR, `binaryWriteCharacteristic failed: ${str}`);
+      result.set("errorCode", 4);
+      result.set("errorString", str);
+      return result;
+    }
+    // remember the data we are writing
+    if (primaryServiceUuid == null) {
+      primaryServiceUuid = "";
+    }
+    let key: string =
+      remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" + characteristicUuid + ":" + instanceId;
+    // write characteristic
+    this.mWriteChr.set(key, value);
+    let writeValue: ArrayBuffer = this.typedArrayToBuffer(value);
+    characteristic.characteristicValue = writeValue;
+    try {
+      await gatt.writeCharacteristicValue(characteristic, gattWriteType);
+    } catch (e) {
+      let businessError = e as BusinessError;
+      this.log(hilog.LogLevel.ERROR,
+        `binaryWriteCharacteristic failed: errorCode=${businessError.code}, errmessage=${businessError.message}`);
+      result.set("errorCode", 4);
+      result.set("errorString", `errorCode: ${businessError.code} ,  errmessage: ${businessError.message}`);
+      return result;
+    }
+    // has associated primary service?
+    let primaryService = this.getPrimaryService(gattServices, characteristic);
+    // onCharacteristicWrite
+    // for convenience
+    let primaryServiceUuid1 = primaryService != null ? this.uuidStr(primaryService.serviceUuid) : "";
+    let serviceUuid1 = this.uuidStr(characteristic.serviceUuid);
+    let characteristicUuid1 = this.uuidStr(characteristic.characteristicUuid);
+    let instanceId1 = FlutterBluePlusOhosPlugin.getInstanceId(characteristic, gattServices);
+    // what data did we write?
+    let key1: string = `${remoteId}:${primaryServiceUuid1}:${serviceUuid1}:${characteristicUuid1}:${instanceId1}`;
+    let value1: Uint8Array | undefined = this.mWriteChr.get(key1);
+    this.mWriteChr.delete(key1);
+    if (value1 == null) {
+      value1 = new Uint8Array(0);
+    }
+    // see: BmCharacteristicData
+    let response: Map<string, Object> = new Map<string, Object>();
+    response.set("remote_id", remoteId);
+    if (primaryService != null) {
+      response.set("primary_service_uuid", primaryServiceUuid1);
+    }
+    response.set("service_uuid", serviceUuid1);
+    response.set("characteristic_uuid", characteristicUuid1);
+    response.set("instance_id", instanceId1);
+    response.set("value", value1);
+    response.set("success", 1);
+    response.set("error_code", 0);
+    response.set("error_string", "GATT_SUCCESS");
+    this.channel?.invokeMethod("OnCharacteristicWritten", response);
+    result.set("success", 1);
+    return result;
+  }
+
+  /**
+   * Binary channel implementation of writeDescriptor.
+   * Mirrors the "writeDescriptor" MethodChannel case, returning
+   * {success, errorCode, errorString} instead of using MethodResult.
+   */
+  public async binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+      characteristicUuid: string, instanceId: number, descriptorUuid: string, value: Uint8Array):
+      Promise<Map<string, number | string>> {
+    let result: Map<string, number | string> = new Map<string, number | string>();
+    result.set("success", 0);
+    result.set("errorCode", 0);
+    result.set("errorString", "");
+    let gatt: ble.GattClientDevice = this.mConnectedDevices.get(remoteId) as ble.GattClientDevice;
+    if (gatt == null) {
+      this.log(hilog.LogLevel.ERROR, "binaryWriteDescriptor failed: device is disconnected");
+      result.set("errorCode", 1);
+      result.set("errorString", "device is disconnected");
+      return result;
+    }
+    let gattService: Array<ble.GattService> = await gatt.getServices();
+    let found: ChrFound =
+      await this.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
+        gattService) as ChrFound;
+    if (found.error != null) {
+      this.log(hilog.LogLevel.ERROR, `binaryWriteDescriptor failed: ${found.error}`);
+      result.set("errorCode", 2);
+      result.set("errorString", found.error);
+      return result;
+    }
+    let characteristic: ble.BLECharacteristic = found.characteristic as ble.BLECharacteristic;
+    // find descriptor
+    let descriptor: ble.BLEDescriptor =
+      this.getReadDescriptorFromArray(descriptorUuid, characteristic.descriptors) as ble.BLEDescriptor;
+    if (descriptor == null) {
+      let s: string =
+        "descriptor not found on characteristic. (desc: " + descriptorUuid + " chr: " + characteristicUuid + ")";
+      this.log(hilog.LogLevel.ERROR, `binaryWriteDescriptor failed: ${s}`);
+      result.set("errorCode", 5);
+      result.set("errorString", s);
+      return result;
+    }
+    // check mtu
+    let mtu: number = this.mMtu.get(remoteId) as number;
+    if ((mtu - 3) < value.length) {
+      let s: string = "data longer than mtu allows. dataLength: " + value.length + "> max: " + (mtu - 3);
+      this.log(hilog.LogLevel.ERROR, `binaryWriteDescriptor failed: ${s}`);
+      result.set("errorCode", 4);
+      result.set("errorString", s);
+      return result;
+    }
+    // remember the data we are writing
+    if (primaryServiceUuid == null) {
+      primaryServiceUuid = "";
+    }
+    let key: string = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" +
+      characteristicUuid + ":" + instanceId + ":" + descriptorUuid;
+    this.mWriteDesc.set(key, value);
+    // write descriptor
+    let writeValue: ArrayBuffer = this.typedArrayToBuffer(value as Uint8Array);
+    descriptor.descriptorValue = writeValue;
+    try {
+      await gatt.writeDescriptorValue(descriptor);
+    } catch (e) {
+      let businessError = e as BusinessError;
+      this.log(hilog.LogLevel.ERROR,
+        `binaryWriteDescriptor failed: gatt.writeDescriptor() returned false, errorCode=${businessError.code}, errorMessage=${businessError.message}`);
+      result.set("errorCode", 4);
+      result.set("errorString", "gatt.writeDescriptor() returned false");
+      return result;
+    }
+    // has associated primary service?
+    let primaryService = this.getPrimaryService(gattService, characteristic);
+    let respPrimaryServiceUuid: string = primaryService != null ? this.uuidStr(primaryService.serviceUuid) : "";
+    let respServiceUuid: string = this.uuidStr(descriptor.serviceUuid);
+    let respCharacteristicUuid: string = this.uuidStr(descriptor.characteristicUuid) as string;
+    let respInstanceId: number = FlutterBluePlusOhosPlugin.getInstanceId(characteristic, gattService);
+    let respDescriptorUuid: string = this.uuidStr(descriptor.descriptorUuid);
+    // what data did we write?
+    let key1: string =
+      `${remoteId}:${respPrimaryServiceUuid}:${respServiceUuid}:${respCharacteristicUuid}:${respInstanceId}:${respDescriptorUuid}`;
+    let value1: Uint8Array | undefined = this.mWriteDesc.get(key1);
+    this.mWriteDesc.delete(key1);
+    if (value1 == null) {
+      value1 = new Uint8Array(0);
+    }
+    // see: BmDescriptorData
+    let response: Map<string, object | string | number> = new Map();
+    response.set("remote_id", remoteId);
+    if (primaryService != null) {
+      response.set("primary_service_uuid", this.uuidStr(primaryService.serviceUuid));
+    }
+    response.set("service_uuid", respServiceUuid);
+    response.set("characteristic_uuid", respCharacteristicUuid);
+    response.set("descriptor_uuid", respDescriptorUuid);
+    response.set("instance_id", respInstanceId);
+    response.set("value", value1);
+    response.set("success", 1);
+    response.set("error_code", 0);
+    response.set("error_string", "GATT_SUCCESS");
+    this.channel?.invokeMethod("OnDescriptorWritten", response);
+    result.set("success", 1);
+    return result;
+  }
+
+  /**
+   * Binary channel implementation of setNotifyValue.
+   * Mirrors the "setNotifyValue" MethodChannel case, returning
+   * {success, errorCode, errorString} instead of using MethodResult.
+   */
+  public async binarySetNotifyValue(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+      characteristicUuid: string, instanceId: number, enable: boolean, forceIndications: boolean):
+      Promise<Map<string, number | string>> {
+    let result: Map<string, number | string> = new Map<string, number | string>();
+    result.set("success", 0);
+    result.set("errorCode", 0);
+    result.set("errorString", "");
+    let gatt: ble.GattClientDevice = this.mConnectedDevices.get(remoteId) as ble.GattClientDevice;
+    if (gatt == null) {
+      this.log(hilog.LogLevel.ERROR, "binarySetNotifyValue failed for remoteId=" + remoteId + ": device is not connected");
+      result.set("errorCode", 1);
+      result.set("errorString", "device is disconnected");
+      return result;
+    }
+    let gattServices = await gatt.getServices();
+    if (gattServices == null || gattServices == undefined) {
+      this.log(hilog.LogLevel.ERROR, "binarySetNotifyValue failed for remoteId=" + remoteId + ": no services discovered");
+      result.set("errorCode", 2);
+      result.set("errorString", "no service");
+      return result;
+    }
+    let found =
+      await this.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
+        gattServices);
+    if (found?.error != null) {
+      this.log(hilog.LogLevel.ERROR, "binarySetNotifyValue failed for remoteId=" + remoteId + ": " + found.error);
+      result.set("errorCode", 2);
+      result.set("errorString", found.error);
+      return result;
+    }
+    let characteristic: ble.BLECharacteristic = found?.characteristic as ble.BLECharacteristic;
+    try {
+      await gatt.setCharacteristicChangeNotification(characteristic, enable);
+    } catch (e) {
+      this.log(hilog.LogLevel.ERROR,
+        `binarySetNotifyValue: failed to set characteristic notification for remoteId=${remoteId}: ${JSON.stringify(e)}`);
+    }
+    let descriptor: ble.BLEDescriptor | null =
+      this.getDescriptorFromArray(CCCD, characteristic.descriptors);
+    if (descriptor == null) {
+      this.log(hilog.LogLevel.ERROR,
+        "binarySetNotifyValue failed for remoteId=" + remoteId + ": CCCD descriptor not found");
+      result.set("errorCode", 7);
+      result.set("errorString", "CCCD descriptor not found");
+      return result;
+    }
+    let descriptorValue: Uint8Array | null = null;
+    if (enable) {
+      let canNotify: boolean = characteristic.properties?.notify as boolean
+      let canIndicate: boolean = characteristic.properties?.indicate as boolean
+      if (!canIndicate && !canNotify) {
+        this.log(hilog.LogLevel.ERROR,
+          `binarySetNotifyValue failed for remoteId=${remoteId}: neither NOTIFY nor INDICATE properties are supported for chr=${characteristicUuid}`);
+        result.set("errorCode", 6);
+        result.set("errorString",
+          "neither NOTIFY nor INDICATE properties are supported by this BLE characteristic");
+        return result;
+      }
+      if (forceIndications && !canIndicate) {
+        this.log(hilog.LogLevel.ERROR,
+          `binarySetNotifyValue failed for remoteId=${remoteId}: INDICATE not supported for chr=${characteristicUuid}, force_indications requested`);
+        result.set("errorCode", 6);
+        result.set("errorString", "INDICATE not supported by this BLE characteristic");
+        return result;
+      }
+      if (canIndicate) {
+        descriptorValue = this.ENABLE_INDICATION_VALUE;
+      }
+      if (canNotify) {
+        descriptorValue = this.ENABLE_NOTIFICATION_VALUE;
+      }
+      if (forceIndications) {
+        descriptorValue = this.ENABLE_INDICATION_VALUE;
+      }
+    } else {
+      descriptorValue = this.DISABLE_NOTIFICATION_VALUE;
+    }
+    // remember the data we are writing
+    if (primaryServiceUuid == null) {
+      primaryServiceUuid = "";
+    }
+    let key: string = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" +
+      characteristicUuid + ":" + instanceId + ":" + CCCD;
+    this.mWriteDesc.set(key, descriptorValue as Uint8Array);
+    // write descriptor
+    if (descriptorValue) {
+      let u8Array: Uint8Array = new Uint8Array(descriptorValue)
+      descriptor.descriptorValue = this.typedArrayToBuffer(u8Array)
+    }
+    try {
+      await gatt.writeDescriptorValue(descriptor);
+    } catch (e) {
+      let businessError = e as BusinessError;
+      this.log(hilog.LogLevel.ERROR,
+        `binarySetNotifyValue failed for remoteId=${remoteId}: writeDescriptorValue failed, errCode=${businessError.code}, errMsg=${businessError.message}`);
+      result.set("errorCode", 4);
+      result.set("errorString", "gatt.writeDescriptor() returned false");
+      return result;
+    }
+    // has associated primary service?
+    let primaryService = this.getPrimaryService(gattServices, characteristic);
+    let respPrimaryServiceUuid: string = primaryService != null ? this.uuidStr(primaryService.serviceUuid) : "";
+    let respServiceUuid: string = this.uuidStr(descriptor?.serviceUuid as string);
+    let respCharacteristicUuid: string = this.uuidStr(descriptor?.characteristicUuid as string);
+    let respInstanceId: number = FlutterBluePlusOhosPlugin.getInstanceId(characteristic, gattServices);
+    let respDescriptorUuid: string = this.uuidStr(descriptor?.descriptorUuid as string);
+    // what data did we write?
+    let key1: string =
+      `${remoteId}:${respPrimaryServiceUuid}:${respServiceUuid}:${respCharacteristicUuid}:${respInstanceId}:${respDescriptorUuid}`;
+    let value1: Uint8Array | undefined = this.mWriteDesc.get(key1);
+    this.mWriteDesc.delete(key1);
+    if (value1 == null) {
+      value1 = new Uint8Array(0);
+    }
+    // see: BmDescriptorData
+    let response: Map<string, Object> = new Map<string, Object>();
+    response.set("remote_id", remoteId);
+    if (primaryService != null) {
+      response.set("primary_service_uuid", respPrimaryServiceUuid);
+    }
+    response.set("service_uuid", respServiceUuid);
+    response.set("characteristic_uuid", respCharacteristicUuid);
+    response.set("descriptor_uuid", respDescriptorUuid);
+    response.set("instance_id", respInstanceId);
+    response.set("value", value1);
+    response.set("success", 1);
+    response.set("error_code", 0);
+    response.set("error_string", "GATT_SUCCESS");
+    this.channel?.invokeMethod("OnDescriptorWritten", response);
+    result.set("success", 1);
+    return result;
   }
 
   bmBondStateEnum(bs: number): number {
