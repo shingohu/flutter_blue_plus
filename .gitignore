@@ -37,3 +37,4 @@ build/
 LICENSE.md
 NOTICE.md
 license_ping.gradle
+.workbuddy/

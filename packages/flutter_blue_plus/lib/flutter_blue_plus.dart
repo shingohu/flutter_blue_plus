@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:ble_permission/ble_permission.dart';
 import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart';
 
@@ -23,4 +24,5 @@ part 'src/bluetooth_utils.dart';
 part 'src/version.dart';
 part 'src/flutter_blue_plus.dart';
 part 'src/mutex_factory.dart';
+part 'src/binary_channel.dart';
 part 'src/utils.dart';

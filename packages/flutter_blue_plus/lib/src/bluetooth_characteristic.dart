@@ -213,6 +213,23 @@ class BluetoothCharacteristic {
     try {
       final writeType = withoutResponse ? BmWriteType.withoutResponse : BmWriteType.withResponse;
 
+      // Try binary channel first (fast path)
+      try {
+        await _BinaryWriteChannel.instance.writeCharacteristic(
+          remoteId: remoteId,
+          primaryServiceUuid: primaryServiceUuid,
+          serviceUuid: serviceUuid,
+          characteristicUuid: characteristicUuid,
+          instanceId: instanceId,
+          withoutResponse: withoutResponse,
+          allowLongWrite: allowLongWrite,
+          value: value,
+        );
+        return;
+      } on MissingPluginException {
+        // Binary channel not supported, fall through to MethodChannel path
+      }
+
       var request = BmWriteCharacteristicRequest(
         remoteId: remoteId,
         primaryServiceUuid: primaryServiceUuid,
@@ -278,6 +295,22 @@ class BluetoothCharacteristic {
     await mtx.take();
 
     try {
+      // Try binary channel first (fast path)
+      try {
+        await _BinaryWriteChannel.instance.setNotifyValue(
+          remoteId: remoteId,
+          primaryServiceUuid: primaryServiceUuid,
+          serviceUuid: serviceUuid,
+          characteristicUuid: characteristicUuid,
+          instanceId: instanceId,
+          enable: notify,
+          forceIndications: forceIndications,
+        );
+        return true;
+      } on MissingPluginException {
+        // Binary channel not supported, fall through to MethodChannel path
+      }
+
       var request = BmSetNotifyValueRequest(
         remoteId: remoteId,
         primaryServiceUuid: primaryServiceUuid,

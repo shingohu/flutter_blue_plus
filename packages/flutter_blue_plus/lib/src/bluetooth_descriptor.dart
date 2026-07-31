@@ -167,6 +167,22 @@ class BluetoothDescriptor {
     await mtx.take();
 
     try {
+      // Try binary channel first (fast path)
+      try {
+        await _BinaryWriteChannel.instance.writeDescriptor(
+          remoteId: remoteId,
+          primaryServiceUuid: primaryServiceUuid,
+          serviceUuid: serviceUuid,
+          characteristicUuid: characteristicUuid,
+          instanceId: instanceId,
+          descriptorUuid: descriptorUuid,
+          value: value,
+        );
+        return;
+      } on MissingPluginException {
+        // Binary channel not supported, fall through to MethodChannel path
+      }
+
       var request = BmWriteDescriptorRequest(
         remoteId: remoteId,
         primaryServiceUuid: primaryServiceUuid,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'src/bluetooth_msgs.dart';
 
 export 'src/bluetooth_msgs.dart';
+export 'src/binary_protocol.dart';
 export 'src/device_identifier.dart';
 export 'src/guid.dart';
 export 'src/log_level.dart';

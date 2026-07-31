@@ -9,6 +9,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.7.0"
+  ble_permission:
+    dependency: transitive
+    description:
+      path: "../../ble_permission"
+      relative: true
+    source: path
+    version: "0.0.1"
   bluez:
     dependency: transitive
     description:
@@ -79,6 +86,13 @@ packages:
     dependency: "direct overridden"
     description:
       path: "../../flutter_blue_plus_linux"
+      relative: true
+    source: path
+    version: "9.0.3"
+  flutter_blue_plus_ohos:
+    dependency: transitive
+    description:
+      path: "../../flutter_blue_plus_ohos"
       relative: true
     source: path
     version: "9.0.3"
