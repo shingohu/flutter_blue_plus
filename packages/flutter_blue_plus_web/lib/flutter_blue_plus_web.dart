@@ -6,11 +6,19 @@ import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:web/web.dart' show Event;
 
+import 'src/binary_handler.dart';
 import 'src/html.dart';
 import 'src/web_bluetooth.dart';
 
 final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
   late final _characteristicValueChangedEventListener = _handleCharacteristicValueChanged.toJS;
+
+  WebBinaryHandler? _binaryHandler;
+
+  void _initBinaryHandler() {
+    _binaryHandler = WebBinaryHandler(this);
+    _binaryHandler!.register();
+  }
 
   final _devices = <DeviceIdentifier, BluetoothDevice>{};
 
@@ -92,7 +100,9 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
   static void registerWith(
     Registrar registrar,
   ) {
-    FlutterBluePlusPlatform.instance = FlutterBluePlusWeb();
+    final plugin = FlutterBluePlusWeb();
+    FlutterBluePlusPlatform.instance = plugin;
+    plugin._initBinaryHandler();
   }
 
   @override
@@ -762,6 +772,241 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
 
       return false;
     }
+  }
+
+  /// Binary channel core: write a characteristic value.
+  /// Emits onCharacteristicWritten events like [writeCharacteristic].
+  Future<({bool success, int errorCode, String errorString})> binaryWriteCharacteristic({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required bool withoutResponse,
+    required List<int> value,
+  }) async {
+    final device = _devices[DeviceIdentifier(remoteId)];
+    if (device == null) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+    final gatt = device.gatt;
+    if (gatt == null) {
+      return (success: false, errorCode: 1, errorString: 'gatt is null');
+    }
+
+    final BluetoothRemoteGATTCharacteristic characteristic;
+    try {
+      characteristic = _findCharacteristicOrThrow(
+        devId: device.remoteId,
+        serviceUuid: Guid(serviceUuid.str128),
+        charUuid: Guid(characteristicUuid.str128),
+        instanceId: instanceId,
+      );
+    } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+
+    try {
+      if (withoutResponse) {
+        await characteristic.writeValueWithoutResponse(Uint8List.fromList(value).toJS).toDart;
+      } else {
+        await characteristic.writeValueWithResponse(Uint8List.fromList(value).toJS).toDart;
+      }
+    } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: device.remoteId,
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      final code = e.toString().contains('NotSupported') ? 3 : 4;
+      return (success: false, errorCode: code, errorString: e.toString());
+    }
+
+    _onCharacteristicWrittenController.add(BmCharacteristicData(
+      remoteId: device.remoteId,
+      primaryServiceUuid: null,
+      serviceUuid: serviceUuid,
+      characteristicUuid: characteristicUuid,
+      instanceId: instanceId,
+      value: value,
+      success: true,
+      errorCode: 0,
+      errorString: '',
+    ));
+    return (success: true, errorCode: 0, errorString: '');
+  }
+
+  /// Binary channel core: write a descriptor value.
+  Future<({bool success, int errorCode, String errorString})> binaryWriteDescriptor({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required Guid descriptorUuid,
+    required List<int> value,
+  }) async {
+    final device = _devices[DeviceIdentifier(remoteId)];
+    if (device == null) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+    final gatt = device.gatt;
+    if (gatt == null) {
+      return (success: false, errorCode: 1, errorString: 'gatt is null');
+    }
+
+    final BluetoothRemoteGATTCharacteristic characteristic;
+    try {
+      characteristic = _findCharacteristicOrThrow(
+        devId: device.remoteId,
+        serviceUuid: Guid(serviceUuid.str128),
+        charUuid: Guid(characteristicUuid.str128),
+        instanceId: instanceId,
+      );
+    } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+
+    final BluetoothRemoteGATTDescriptor descriptor;
+    try {
+      descriptor = await characteristic.getDescriptor(descriptorUuid.str128.toJS).toDart;
+    } catch (e) {
+      return (success: false, errorCode: 5, errorString: e.toString());
+    }
+
+    try {
+      await descriptor.writeValue(Uint8List.fromList(value).toJS).toDart;
+    } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: device.remoteId,
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 4, errorString: e.toString());
+    }
+
+    _onDescriptorWrittenController.add(BmDescriptorData(
+      remoteId: device.remoteId,
+      primaryServiceUuid: null,
+      serviceUuid: serviceUuid,
+      characteristicUuid: characteristicUuid,
+      instanceId: instanceId,
+      descriptorUuid: descriptorUuid,
+      value: value,
+      success: true,
+      errorCode: 0,
+      errorString: '',
+    ));
+    return (success: true, errorCode: 0, errorString: '');
+  }
+
+  /// Binary channel core: enable/disable notifications.
+  Future<({bool success, int errorCode, String errorString})> binarySetNotifyValue({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required bool enable,
+  }) async {
+    final device = _devices[DeviceIdentifier(remoteId)];
+    if (device == null) {
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+    final gatt = device.gatt;
+    if (gatt == null) {
+      return (success: false, errorCode: 1, errorString: 'gatt is null');
+    }
+
+    final BluetoothRemoteGATTCharacteristic characteristic;
+    try {
+      characteristic = _findCharacteristicOrThrow(
+        devId: device.remoteId,
+        serviceUuid: Guid(serviceUuid.str128),
+        charUuid: Guid(characteristicUuid.str128),
+        instanceId: instanceId,
+      );
+    } catch (e) {
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+
+    try {
+      if (enable) {
+        characteristic.addEventListener(
+          'characteristicvaluechanged',
+          _characteristicValueChangedEventListener,
+        );
+        await characteristic.startNotifications().toDart;
+      } else {
+        await characteristic.stopNotifications().toDart;
+        characteristic.removeEventListener(
+          'characteristicvaluechanged',
+          _characteristicValueChangedEventListener,
+        );
+      }
+    } catch (e) {
+      return (success: false, errorCode: 4, errorString: e.toString());
+    }
+    return (success: true, errorCode: 0, errorString: '');
   }
 
   void _handleCharacteristicValueChanged(
