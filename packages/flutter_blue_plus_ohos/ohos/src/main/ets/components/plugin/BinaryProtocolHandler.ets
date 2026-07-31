@@ -39,13 +39,13 @@ const BINARY_CHANNEL: string = "flutter_blue_plus/binary";
  * the handler only depends on this interface.
  */
 export interface BinaryPlugin {
-  binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
     characteristicUuid: string, instanceId: number, writeType: number, value: Uint8Array):
     Promise<Map<string, number | string>>;
-  binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
     characteristicUuid: string, instanceId: number, descriptorUuid: string, value: Uint8Array):
     Promise<Map<string, number | string>>;
-  binarySetNotifyValue(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  binarySetNotifyValue(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
     characteristicUuid: string, instanceId: number, enable: boolean, forceIndications: boolean):
     Promise<Map<string, number | string>>;
 }
@@ -119,6 +119,10 @@ export default class BinaryProtocolHandler {
       }
       const primaryServiceUuid = this.readStringField(bb) ?? "";
       const descriptorUuid = this.readStringField(bb) ?? "";
+      // The Dart side encodes a null primaryServiceUuid (characteristic in the
+      // primary service) as an empty string (len 0). Normalize it back to null
+      // so locateCharacteristic() falls back to serviceUuid as intended.
+      const primary = primaryServiceUuid === "" ? null : primaryServiceUuid;
 
       const plugin = this.plugin;
       if (plugin == null) {
@@ -135,7 +139,7 @@ export default class BinaryProtocolHandler {
         const value = bb.readUint8Array(valueLen);
         if (cmd === CMD_WRITE_CHARACTERISTIC) {
           plugin.binaryWriteCharacteristic(
-            remoteId, primaryServiceUuid, serviceUuid, characteristicUuid,
+            remoteId, primary, serviceUuid, characteristicUuid,
             instanceId, (flags & FLAG_WITHOUT_RESPONSE) !== 0 ? 1 : 0, value,
           ).then((r: Map<string, number | string>) => {
             reply.reply(this.fromResult(r));
@@ -144,7 +148,7 @@ export default class BinaryProtocolHandler {
           });
         } else {
           plugin.binaryWriteDescriptor(
-            remoteId, primaryServiceUuid, serviceUuid, characteristicUuid,
+            remoteId, primary, serviceUuid, characteristicUuid,
             instanceId, descriptorUuid, value,
           ).then((r: Map<string, number | string>) => {
             reply.reply(this.fromResult(r));
@@ -154,7 +158,7 @@ export default class BinaryProtocolHandler {
         }
       } else if (cmd === CMD_SET_NOTIFY_VALUE) {
         plugin.binarySetNotifyValue(
-          remoteId, primaryServiceUuid, serviceUuid, characteristicUuid,
+          remoteId, primary, serviceUuid, characteristicUuid,
           instanceId, (flags & FLAG_ENABLE) !== 0, (flags & FLAG_FORCE_INDICATIONS) !== 0,
         ).then((r: Map<string, number | string>) => {
           reply.reply(this.fromResult(r));

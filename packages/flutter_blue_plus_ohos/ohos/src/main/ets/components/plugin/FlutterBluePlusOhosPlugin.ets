@@ -1212,7 +1212,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
    * Mirrors the "writeCharacteristic" MethodChannel case, returning
    * {success, errorCode, errorString} instead of using MethodResult.
    */
-  public async binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  public async binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
       characteristicUuid: string, instanceId: number, writeType: number, value: Uint8Array):
       Promise<Map<string, number | string>> {
     let result: Map<string, number | string> = new Map<string, number | string>();
@@ -1276,11 +1276,8 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
       return result;
     }
     // remember the data we are writing
-    if (primaryServiceUuid == null) {
-      primaryServiceUuid = "";
-    }
     let key: string =
-      remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" + characteristicUuid + ":" + instanceId;
+      remoteId + ":" + (primaryServiceUuid ?? "") + ":" + serviceUuid + ":" + characteristicUuid + ":" + instanceId;
     // write characteristic
     this.mWriteChr.set(key, value);
     let writeValue: ArrayBuffer = this.typedArrayToBuffer(value);
@@ -1333,7 +1330,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
    * Mirrors the "writeDescriptor" MethodChannel case, returning
    * {success, errorCode, errorString} instead of using MethodResult.
    */
-  public async binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  public async binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
       characteristicUuid: string, instanceId: number, descriptorUuid: string, value: Uint8Array):
       Promise<Map<string, number | string>> {
     let result: Map<string, number | string> = new Map<string, number | string>();
@@ -1379,10 +1376,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
       return result;
     }
     // remember the data we are writing
-    if (primaryServiceUuid == null) {
-      primaryServiceUuid = "";
-    }
-    let key: string = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" +
+    let key: string = remoteId + ":" + (primaryServiceUuid ?? "") + ":" + serviceUuid + ":" +
       characteristicUuid + ":" + instanceId + ":" + descriptorUuid;
     this.mWriteDesc.set(key, value);
     // write descriptor
@@ -1437,7 +1431,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
    * Mirrors the "setNotifyValue" MethodChannel case, returning
    * {success, errorCode, errorString} instead of using MethodResult.
    */
-  public async binarySetNotifyValue(remoteId: string, primaryServiceUuid: string, serviceUuid: string,
+  public async binarySetNotifyValue(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
       characteristicUuid: string, instanceId: number, enable: boolean, forceIndications: boolean):
       Promise<Map<string, number | string>> {
     let result: Map<string, number | string> = new Map<string, number | string>();
@@ -1515,10 +1509,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
       descriptorValue = this.DISABLE_NOTIFICATION_VALUE;
     }
     // remember the data we are writing
-    if (primaryServiceUuid == null) {
-      primaryServiceUuid = "";
-    }
-    let key: string = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" +
+    let key: string = remoteId + ":" + (primaryServiceUuid ?? "") + ":" + serviceUuid + ":" +
       characteristicUuid + ":" + instanceId + ":" + CCCD;
     this.mWriteDesc.set(key, descriptorValue as Uint8Array);
     // write descriptor
@@ -1772,7 +1763,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
     return (sameUuidCount > 1) ? indexForTarget + 1 : 0;
   }
 
-  async locateCharacteristic(primaryServiceUuid: string, serviceUuid: string,
+  async locateCharacteristic(primaryServiceUuid: string | null, serviceUuid: string,
     characteristicUuid: string, instanceId: number, gattServices: ble.GattService[]): Promise<ChrFound | undefined> {
     // remember this
     let isSecondaryService: boolean = primaryServiceUuid != null;
