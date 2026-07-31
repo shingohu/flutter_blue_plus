@@ -1213,7 +1213,7 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
    * {success, errorCode, errorString} instead of using MethodResult.
    */
   public async binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
-      characteristicUuid: string, instanceId: number, writeType: number, value: Uint8Array):
+      characteristicUuid: string, instanceId: number, writeType: number, allowLongWrite: boolean, value: Uint8Array):
       Promise<Map<string, number | string>> {
     let result: Map<string, number | string> = new Map<string, number | string>();
     result.set("success", 0);
@@ -1246,7 +1246,6 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
       return result;
     }
     let writeTypeInt: number = writeType;
-    let allowLongWrite: boolean = false;
     let gattWriteType: number = writeTypeInt == 0 ? ble.GattWriteType.WRITE : ble.GattWriteType.WRITE_NO_RESPONSE;
     if (gattWriteType == ble.GattWriteType.WRITE) {
       if (!characteristic?.properties?.write) {

@@ -40,7 +40,7 @@ const BINARY_CHANNEL: string = "flutter_blue_plus/binary";
  */
 export interface BinaryPlugin {
   binaryWriteCharacteristic(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
-    characteristicUuid: string, instanceId: number, writeType: number, value: Uint8Array):
+    characteristicUuid: string, instanceId: number, writeType: number, allowLongWrite: boolean, value: Uint8Array):
     Promise<Map<string, number | string>>;
   binaryWriteDescriptor(remoteId: string, primaryServiceUuid: string | null, serviceUuid: string,
     characteristicUuid: string, instanceId: number, descriptorUuid: string, value: Uint8Array):
@@ -138,9 +138,10 @@ export default class BinaryProtocolHandler {
         const valueLen = bb.readUint16();
         const value = bb.readUint8Array(valueLen);
         if (cmd === CMD_WRITE_CHARACTERISTIC) {
+          const allowLongWrite = (flags & FLAG_ALLOW_LONG_WRITE) !== 0;
           plugin.binaryWriteCharacteristic(
             remoteId, primary, serviceUuid, characteristicUuid,
-            instanceId, (flags & FLAG_WITHOUT_RESPONSE) !== 0 ? 1 : 0, value,
+            instanceId, (flags & FLAG_WITHOUT_RESPONSE) !== 0 ? 1 : 0, allowLongWrite, value,
           ).then((r: Map<string, number | string>) => {
             reply.reply(this.fromResult(r));
           }).catch((e: Error) => {
