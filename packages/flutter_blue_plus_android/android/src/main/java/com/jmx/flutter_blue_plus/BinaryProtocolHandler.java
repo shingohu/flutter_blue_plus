@@ -120,6 +120,13 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
             String primaryServiceUuid = readString(message);
             if (primaryServiceUuid == null) primaryServiceUuid = "";
 
+            // The Dart side encodes a null primaryServiceUuid (characteristic of
+            // the primary service) as an empty string (len 0). Normalize it back
+            // to null so locateCharacteristic() falls back to a primary-service
+            // lookup instead of misinterpreting the characteristic as belonging
+            // to a secondary (included) service.
+            String effectivePrimary = primaryServiceUuid.isEmpty() ? null : primaryServiceUuid;
+
             // descriptorUuid (may be empty for characteristic ops)
             String descriptorUuid = readString(message);
             if (descriptorUuid == null) descriptorUuid = "";
@@ -127,17 +134,17 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
             // Process based on command
             switch (cmd) {
                 case CMD_WRITE_CHARACTERISTIC: {
-                    handleWriteCharacteristic(remoteId, primaryServiceUuid, serviceUuid,
+                    handleWriteCharacteristic(remoteId, effectivePrimary, serviceUuid,
                             characteristicUuid, instanceId, flags, message, reply);
                     break;
                 }
                 case CMD_WRITE_DESCRIPTOR: {
-                    handleWriteDescriptor(remoteId, primaryServiceUuid, serviceUuid,
+                    handleWriteDescriptor(remoteId, effectivePrimary, serviceUuid,
                             characteristicUuid, instanceId, descriptorUuid, message, reply);
                     break;
                 }
                 case CMD_SET_NOTIFY_VALUE: {
-                    handleSetNotifyValue(remoteId, primaryServiceUuid, serviceUuid,
+                    handleSetNotifyValue(remoteId, effectivePrimary, serviceUuid,
                             characteristicUuid, instanceId, flags, message, reply);
                     break;
                 }
@@ -209,7 +216,10 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
             // Store the reply so it can be completed when onCharacteristicWrite fires.
             // This provides flow control: the callback fires when the BLE stack has
             // processed the write and has buffer space for the next one.
-            String key = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":"
+            // The key must use "" for primary-service characteristics (null here,
+            // normalized from the empty string above) to match the key built in
+            // FlutterBluePlusPlugin.onCharacteristicWrite.
+            String key = remoteId + ":" + (primaryServiceUuid == null ? "" : primaryServiceUuid) + ":" + serviceUuid + ":"
                     + characteristicUuid + ":" + instanceId;
             plugin.storeBinaryReply(key, reply);
             plugin.storeWriteValue(key, value);
@@ -252,7 +262,9 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
         boolean success = gatt.writeDescriptor(descriptor);
 
         if (success) {
-            String key = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":"
+            // "" for primary-service characteristics (null here) to match the
+            // key built in FlutterBluePlusPlugin.onDescriptorWrite.
+            String key = remoteId + ":" + (primaryServiceUuid == null ? "" : primaryServiceUuid) + ":" + serviceUuid + ":"
                     + characteristicUuid + ":" + instanceId + ":" + descriptorUuid;
             plugin.storeBinaryReply(key, reply);
         } else {
@@ -310,7 +322,8 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
         if (written) {
             // Include the CCCD descriptorUuid so the key matches the one built in
             // FlutterBluePlusPlugin.onDescriptorWrite (which appends descriptorUuid).
-            String key = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":"
+            // "" for primary-service characteristics (null here) to match that key.
+            String key = remoteId + ":" + (primaryServiceUuid == null ? "" : primaryServiceUuid) + ":" + serviceUuid + ":"
                     + characteristicUuid + ":" + instanceId + ":" + plugin.uuidStr(cccd.getUuid());
             plugin.storeBinaryReply(key, reply);
         } else {
@@ -343,7 +356,7 @@ public class BinaryProtocolHandler implements BinaryMessenger.BinaryMessageHandl
     }
 
     @NonNull
-    private static ByteBuffer encodeError(int errorCode, String errorString) {
+    static ByteBuffer encodeError(int errorCode, String errorString) {
         byte[] errorStrBytes = errorString != null
                 ? errorString.getBytes(StandardCharsets.UTF_8)
                 : new byte[0];
