@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bluez/bluez.dart';
 import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart';
+import 'src/binary_handler.dart';
 import 'src/stream_utils.dart';
 
 extension on BlueZDevice {
@@ -42,6 +43,8 @@ final class _LinuxFoundCharacteristic {
 
 final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   final _client = BlueZClient();
+
+  LinuxBinaryHandler? _binaryHandler;
 
   var _initialized = false;
   var _logLevel = LogLevel.none;
@@ -1064,8 +1067,208 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
     }
   }
 
+  /// Binary channel core: write a characteristic value.
+  /// Emits onCharacteristicWritten events like [writeCharacteristic].
+  Future<({bool success, int errorCode, String errorString})> binaryWriteCharacteristic({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required bool withoutResponse,
+    required List<int> value,
+  }) async {
+    BlueZDevice? device;
+    try {
+      await _initFlutterBluePlus();
+      device = _client.devices.singleWhere((d) => d.remoteId.str == remoteId);
+    } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+
+    _LinuxFoundCharacteristic found;
+    try {
+      found = _findCharacteristic(device, serviceUuid, characteristicUuid, instanceId);
+    } on StateError catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+    final service = found.service;
+    final characteristic = found.characteristic;
+
+    try {
+      await characteristic.writeValue(
+        value,
+        type: withoutResponse
+            ? BlueZGattCharacteristicWriteType.command
+            : BlueZGattCharacteristicWriteType.request,
+      );
+    } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: device.remoteId,
+        primaryServiceUuid: null,
+        serviceUuid: Guid.fromBytes(service.uuid.value),
+        characteristicUuid: Guid.fromBytes(characteristic.uuid.value),
+        instanceId: _instanceId(device, service, characteristic),
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 4, errorString: e.toString());
+    }
+
+    _onCharacteristicWrittenController.add(BmCharacteristicData(
+      remoteId: device.remoteId,
+      primaryServiceUuid: null,
+      serviceUuid: Guid.fromBytes(service.uuid.value),
+      characteristicUuid: Guid.fromBytes(characteristic.uuid.value),
+      instanceId: _instanceId(device, service, characteristic),
+      value: value,
+      success: true,
+      errorCode: 0,
+      errorString: '',
+    ));
+    return (success: true, errorCode: 0, errorString: '');
+  }
+
+  /// Binary channel core: write a descriptor value.
+  /// Emits onDescriptorWritten events like [writeDescriptor].
+  Future<({bool success, int errorCode, String errorString})> binaryWriteDescriptor({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required Guid descriptorUuid,
+    required List<int> value,
+  }) async {
+    BlueZDevice? device;
+    try {
+      await _initFlutterBluePlus();
+      device = _client.devices.singleWhere((d) => d.remoteId.str == remoteId);
+    } catch (e) {
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+
+    _LinuxFoundCharacteristic found;
+    try {
+      found = _findCharacteristic(device, serviceUuid, characteristicUuid, instanceId);
+    } on StateError catch (e) {
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+    final service = found.service;
+    final characteristic = found.characteristic;
+
+    final BlueZGattDescriptor descriptor;
+    try {
+      descriptor = characteristic.descriptors.singleWhere((d) {
+        return Guid.fromBytes(d.uuid.value) == descriptorUuid;
+      });
+    } on StateError {
+      return (success: false, errorCode: 5, errorString: 'descriptor not found');
+    }
+
+    try {
+      await descriptor.writeValue(value);
+    } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: device.remoteId,
+        primaryServiceUuid: null,
+        serviceUuid: Guid.fromBytes(service.uuid.value),
+        characteristicUuid: Guid.fromBytes(characteristic.uuid.value),
+        instanceId: _instanceId(device, service, characteristic),
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
+      return (success: false, errorCode: 4, errorString: e.toString());
+    }
+
+    _onDescriptorWrittenController.add(BmDescriptorData(
+      remoteId: device.remoteId,
+      primaryServiceUuid: null,
+      serviceUuid: Guid.fromBytes(service.uuid.value),
+      characteristicUuid: Guid.fromBytes(characteristic.uuid.value),
+      instanceId: _instanceId(device, service, characteristic),
+      descriptorUuid: descriptorUuid,
+      value: value,
+      success: true,
+      errorCode: 0,
+      errorString: '',
+    ));
+    return (success: true, errorCode: 0, errorString: '');
+  }
+
+  /// Binary channel core: enable/disable notifications.
+  Future<({bool success, int errorCode, String errorString})> binarySetNotifyValue({
+    required String remoteId,
+    required Guid? primaryServiceUuid,
+    required Guid serviceUuid,
+    required Guid characteristicUuid,
+    required int instanceId,
+    required bool enable,
+  }) async {
+    BlueZDevice? device;
+    try {
+      await _initFlutterBluePlus();
+      device = _client.devices.singleWhere((d) => d.remoteId.str == remoteId);
+    } catch (e) {
+      return (success: false, errorCode: 1, errorString: 'device is not connected');
+    }
+
+    _LinuxFoundCharacteristic found;
+    try {
+      found = _findCharacteristic(device, serviceUuid, characteristicUuid, instanceId);
+    } on StateError catch (e) {
+      return (success: false, errorCode: 2, errorString: e.toString());
+    }
+    final characteristic = found.characteristic;
+
+    try {
+      if (enable) {
+        await characteristic.startNotify();
+      } else {
+        await characteristic.stopNotify();
+      }
+    } catch (e) {
+      return (success: false, errorCode: 4, errorString: e.toString());
+    }
+    return (success: true, errorCode: 0, errorString: '');
+  }
+
   static void registerWith() {
-    FlutterBluePlusPlatform.instance = FlutterBluePlusLinux();
+    final plugin = FlutterBluePlusLinux();
+    FlutterBluePlusPlatform.instance = plugin;
+    plugin._initBinaryHandler();
+  }
+
+  void _initBinaryHandler() {
+    _binaryHandler = LinuxBinaryHandler(this);
+    _binaryHandler!.register();
   }
 
   Future<void> _initFlutterBluePlus() async {
