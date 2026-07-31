@@ -177,7 +177,7 @@ git commit -m "test: lock binary protocol encode/decode behavior"
 
 **前置事实：** Linux 包无 test 目录、`registerWith()` 为无参 static（:1067）。`BasicMessageChannel` 无 messenger 参数时使用默认 messenger，Dart 侧注册即可收到 `_BinaryWriteChannel` 的消息。
 
-- [ ] **Step 1: 在 flutter_blue_plus_linux.dart 新增 core 方法**（放在 `writeCharacteristic` 附近）。返回 Dart 3 record `({bool success, int errorCode, String errorString})`，事件发射与现有实现一致（成功与失败都发）：
+- [ ] **Step 1: 在 flutter_blue_plus_linux.dart 新增 core 方法**（放在 `writeCharacteristic` 附近）。返回 Dart 3 record `({bool success, int errorCode, String errorString})`。**事件语义：所有失败分支（设备查找、特征查找、写入失败）与成功分支都发射事件**——用户层 onCharacteristicWritten 监听不能因二进制路径而中断：
 
 ```dart
   /// Binary channel core: write a characteristic value.
@@ -196,6 +196,17 @@ git commit -m "test: lock binary protocol encode/decode behavior"
       await _initFlutterBluePlus();
       device = _client.devices.singleWhere((d) => d.remoteId.str == remoteId);
     } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
       return (success: false, errorCode: 1, errorString: 'device is not connected');
     }
 
@@ -203,6 +214,17 @@ git commit -m "test: lock binary protocol encode/decode behavior"
     try {
       found = _findCharacteristic(device, serviceUuid, characteristicUuid, instanceId);
     } on StateError catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
       return (success: false, errorCode: 2, errorString: e.toString());
     }
     final service = found.service;
@@ -245,7 +267,7 @@ git commit -m "test: lock binary protocol encode/decode behavior"
   }
 ```
 
-**注意：** 设备查找失败的失败事件行为——原实现 catch 后发失败事件。此处为简化返回 errorCode 1 不发事件。此差异可接受（Dart 端二进制路径成功即返回，不消费事件；MethodChannel 路径仍由委托的 public 方法覆盖）。
+`binaryWriteDescriptor` / `binarySetNotifyValue` 的设备查找与特征查找失败分支同样先发对应失败事件（`BmDescriptorData` 用于 descriptor 路径），再返回错误码。
 
 - [ ] **Step 2: 同样新增 `binaryWriteDescriptor` 与 `binarySetNotifyValue`**
 
@@ -359,28 +381,9 @@ git commit -m "test: lock binary protocol encode/decode behavior"
   }
 ```
 
-- [ ] **Step 3: 将既有 public 方法改造为委托 core**（保持签名与事件行为不变，删除被复制的 try/catch 逻辑）。`writeCharacteristic`（:925-990）：
+- [ ] **Step 3: 不改动既有 public 方法**（`writeCharacteristic` :925、`writeDescriptor` :992、`setNotifyValue` :813 保持原实现）
 
-```dart
-  @override
-  Future<bool> writeCharacteristic(
-    BmWriteCharacteristicRequest request,
-  ) async {
-    final result = await binaryWriteCharacteristic(
-      remoteId: request.remoteId.str,
-      primaryServiceUuid: request.primaryServiceUuid,
-      serviceUuid: request.serviceUuid,
-      characteristicUuid: request.characteristicUuid,
-      instanceId: request.instanceId,
-      withoutResponse: request.writeType == BmWriteType.withoutResponse,
-      allowLongWrite: request.allowLongWrite,
-      value: request.value,
-    );
-    return result.success;
-  }
-```
-
-`writeDescriptor`（:992-1060）与 `setNotifyValue`（:813-830）同样委托，删除原方法体。**注意：** 原 `writeDescriptor` 的事件失败分支里 `descriptorUuid: request.descriptorUuid`——core 已覆盖。
+**理由（pre-flight 修正）：** 委托会引入行为回归——原 `setNotifyValue` 无 try/catch（异常直接传播，Dart 端 `invokeMethod` 快速失败）；委托后失败变静默返回 false，Dart 端 MethodChannel 路径会等待事件流直到 15s 超时。core 方法是二进制路径专用新代码（错误码语义与 MethodChannel 路径不同），两个路径各自独立。代码有适度重复（write 校验/写入核心 ~50 行），可接受。
 
 - [ ] **Step 4: 重写 `src/binary_handler.dart` 为实例类**（替换整个文件）：
 
@@ -605,6 +608,17 @@ git commit -m "feat(linux): real binary channel for write/descriptor/notify"
   }) async {
     final device = _devices[DeviceIdentifier(remoteId)];
     if (device == null) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
       return (success: false, errorCode: 1, errorString: 'device is not connected');
     }
     final gatt = device.gatt;
@@ -621,6 +635,17 @@ git commit -m "feat(linux): real binary channel for write/descriptor/notify"
         instanceId: instanceId,
       );
     } catch (e) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
       return (success: false, errorCode: 2, errorString: e.toString());
     }
 
@@ -676,6 +701,18 @@ git commit -m "feat(linux): real binary channel for write/descriptor/notify"
   }) async {
     final device = _devices[DeviceIdentifier(remoteId)];
     if (device == null) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
       return (success: false, errorCode: 1, errorString: 'device is not connected');
     }
     final gatt = device.gatt;
@@ -692,6 +729,18 @@ git commit -m "feat(linux): real binary channel for write/descriptor/notify"
         instanceId: instanceId,
       );
     } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
       return (success: false, errorCode: 2, errorString: e.toString());
     }
 
@@ -788,27 +837,9 @@ git commit -m "feat(linux): real binary channel for write/descriptor/notify"
   }
 ```
 
-- [ ] **Step 3: 将既有 public 方法改造为委托 core**。`writeCharacteristic`（:624-690）整体替换为：
+- [ ] **Step 3: 不改动既有 public 方法**（`writeCharacteristic` :624、`writeDescriptor` :696、`setNotifyValue` :458 保持原实现）
 
-```dart
-  @override
-  Future<bool> writeCharacteristic(
-    BmWriteCharacteristicRequest request,
-  ) async {
-    final result = await binaryWriteCharacteristic(
-      remoteId: request.remoteId.str,
-      primaryServiceUuid: request.primaryServiceUuid,
-      serviceUuid: request.serviceUuid,
-      characteristicUuid: request.characteristicUuid,
-      instanceId: request.instanceId,
-      withoutResponse: request.writeType == BmWriteType.withoutResponse,
-      value: request.value,
-    );
-    return result.success;
-  }
-```
-
-`writeDescriptor`（:696-770）与 `setNotifyValue`（:458-495）同样委托。**注意：** 原 `setNotifyValue` 返回 false 表示"无 CCCD 响应事件"——委托后同样返回 `result.success`；二进制路径直接 await 完成即回包，语义等价且更精确。
+**理由（pre-flight 修正）：** 同 Task 2 Step 3——原 `setNotifyValue` 无 try/catch、返回 false 的语义依赖既有调用方；委托会改变 MethodChannel 路径的失败行为。core 方法是二进制路径专用新代码，两个路径各自独立。
 
 - [ ] **Step 4: 重写 `src/binary_handler.dart` 为实例类**（替换整个文件，与 Linux 版同构，差异为分派调用 `_plugin.binaryWriteCharacteristic` 等）：
 
