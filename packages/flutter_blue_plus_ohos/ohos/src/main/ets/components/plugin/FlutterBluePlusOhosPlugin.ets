@@ -493,8 +493,11 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
           let descriptor: ble.BLEDescriptor | null =
             this.getDescriptorFromArray(CCCD, characteristic.descriptors);
           if (descriptor == null) {
-            let uuid: string = this.uuidStr(characteristic.serviceUuid);
-            result.success(false);
+            // Match the binary path (errorCode 7): notifications cannot be
+            // enabled without the CCCD, so report failure instead of silently
+            // succeeding (the caller would believe notifications are on).
+            this.log(hilog.LogLevel.ERROR, `setNotifyValue failed for remoteId=${remoteId}: CCCD descriptor not found`);
+            result.error("setNotifyValue", "CCCD descriptor not found", null);
             return;
           }
           let descriptorValue: Uint8Array | null = null;

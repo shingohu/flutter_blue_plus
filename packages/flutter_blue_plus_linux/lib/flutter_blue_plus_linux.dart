@@ -1312,9 +1312,12 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
       return;
     }
 
-    _initialized = true;
-
     await _client.connect();
+
+    // Only mark initialized after a successful connect. Setting it first
+    // would permanently skip re-init after a failed connect (e.g. BlueZ
+    // unavailable), leaving every subsequent call failing forever.
+    _initialized = true;
 
     _client.devicesChanged.switchMap(
       (devices) {
