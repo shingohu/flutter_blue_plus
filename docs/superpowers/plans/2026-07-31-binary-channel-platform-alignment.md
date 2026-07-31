@@ -267,7 +267,7 @@ git commit -m "test: lock binary protocol encode/decode behavior"
   }
 ```
 
-`binaryWriteDescriptor` / `binarySetNotifyValue` 的设备查找与特征查找失败分支同样先发对应失败事件（`BmDescriptorData` 用于 descriptor 路径），再返回错误码。
+`binaryWriteDescriptor` 的设备查找（1）、特征查找（2）、descriptor 查找（5）失败分支同样先发 `BmDescriptorData` 失败事件，再返回错误码（与 write 路径及 public 方法 catch 行为对齐）。`binarySetNotifyValue` 全分支不发事件——Linux public setNotifyValue 原实现即无事件发射（startNotify/stopNotify 无 written 事件语义），二进制路径与之对齐。
 
 - [ ] **Step 2: 同样新增 `binaryWriteDescriptor` 与 `binarySetNotifyValue`**
 
