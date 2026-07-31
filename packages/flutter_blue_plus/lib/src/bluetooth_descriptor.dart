@@ -177,6 +177,7 @@ class BluetoothDescriptor {
           instanceId: instanceId,
           descriptorUuid: descriptorUuid,
           value: value,
+          timeout: timeout,
         );
         return;
       } on MissingPluginException {

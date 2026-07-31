@@ -224,6 +224,7 @@ class BluetoothCharacteristic {
           withoutResponse: withoutResponse,
           allowLongWrite: allowLongWrite,
           value: value,
+          timeout: timeout,
         );
         return;
       } on MissingPluginException {
@@ -305,6 +306,7 @@ class BluetoothCharacteristic {
           instanceId: instanceId,
           enable: notify,
           forceIndications: forceIndications,
+          timeout: timeout,
         );
         return true;
       } on MissingPluginException {

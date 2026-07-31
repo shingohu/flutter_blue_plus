@@ -26,6 +26,7 @@ class _BinaryWriteChannel {
     required bool withoutResponse,
     required bool allowLongWrite,
     required List<int> value,
+    required Duration timeout,
   }) async {
 
     int flags = 0;
@@ -42,7 +43,7 @@ class _BinaryWriteChannel {
       value: value,
     );
 
-    final response = await _sendAndReceive(request, 'writeCharacteristic');
+    final response = await _sendAndReceive(request, 'writeCharacteristic', timeout);
     final result = decodeResponse(response);
 
     if (result['success'] != 1) {
@@ -66,6 +67,7 @@ class _BinaryWriteChannel {
     required int instanceId,
     required Guid descriptorUuid,
     required List<int> value,
+    required Duration timeout,
   }) async {
     final request = encodeWriteDescriptor(
       flags: 0,
@@ -78,7 +80,7 @@ class _BinaryWriteChannel {
       value: value,
     );
 
-    final response = await _sendAndReceive(request, 'writeDescriptor');
+    final response = await _sendAndReceive(request, 'writeDescriptor', timeout);
     final result = decodeResponse(response);
 
     if (result['success'] != 1) {
@@ -102,6 +104,7 @@ class _BinaryWriteChannel {
     required int instanceId,
     required bool enable,
     required bool forceIndications,
+    required Duration timeout,
   }) async {
     int flags = 0;
     if (enable) flags |= NotifyFlags.enable;
@@ -116,7 +119,7 @@ class _BinaryWriteChannel {
       primaryServiceUuid: primaryServiceUuid?.str,
     );
 
-    final response = await _sendAndReceive(request, 'setNotifyValue');
+    final response = await _sendAndReceive(request, 'setNotifyValue', timeout);
     final result = decodeResponse(response);
 
     if (result['success'] != 1) {
@@ -134,12 +137,12 @@ class _BinaryWriteChannel {
   // Timeout protects the per-device operation mutex: if the native side never
   // replies (e.g. a pending-reply key mismatch), the awaiting write() would
   // otherwise hold the mutex forever and deadlock all further BLE operations
-  // on that device. Matches the MethodChannel path's fbpTimeout behavior.
-  static const Duration _sendTimeout = Duration(seconds: 15);
-
-  Future<ByteData> _sendAndReceive(ByteData request, String function) async {
+  // on that device. Uses the caller's timeout so the binary path behaves
+  // identically to the MethodChannel path's fbpTimeout.
+  Future<ByteData> _sendAndReceive(
+      ByteData request, String function, Duration timeout) async {
     try {
-      final response = await _channel.send(request).timeout(_sendTimeout);
+      final response = await _channel.send(request).timeout(timeout);
       if (response == null) {
         throw Exception('null response from binary channel');
       }
@@ -147,7 +150,7 @@ class _BinaryWriteChannel {
     } on TimeoutException {
       throw FlutterBluePlusException(
           ErrorPlatform.fbp, function, FbpErrorCode.timeout.index,
-          'Timed out after ${_sendTimeout.inMilliseconds}ms');
+          'Timed out after ${timeout.inMilliseconds}ms');
     }
   }
 }
