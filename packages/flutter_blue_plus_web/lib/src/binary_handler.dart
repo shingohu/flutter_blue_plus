@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart'
@@ -57,7 +58,7 @@ class WebBinaryHandler {
       offset += 1;
       if (len == 0) return '';
       if (offset + len > data.lengthInBytes) return null;
-      final s = String.fromCharCodes(data.buffer.asUint8List().sublist(offset, offset + len));
+      final s = utf8.decode(data.buffer.asUint8List().sublist(offset, offset + len));
       offset += len;
       return s;
     }
