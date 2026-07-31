@@ -1348,13 +1348,13 @@ export default class FlutterBluePlusOhosPlugin implements FlutterPlugin, MethodC
     let found: ChrFound =
       await this.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
         gattService) as ChrFound;
-    if (found.error != null) {
+    if (found?.error != null) {
       this.log(hilog.LogLevel.ERROR, `binaryWriteDescriptor failed: ${found.error}`);
       result.set("errorCode", 2);
       result.set("errorString", found.error);
       return result;
     }
-    let characteristic: ble.BLECharacteristic = found.characteristic as ble.BLECharacteristic;
+    let characteristic: ble.BLECharacteristic = found?.characteristic as ble.BLECharacteristic;
     // find descriptor
     let descriptor: ble.BLEDescriptor =
       this.getReadDescriptorFromArray(descriptorUuid, characteristic.descriptors) as ble.BLEDescriptor;
