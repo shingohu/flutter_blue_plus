@@ -1169,6 +1169,18 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
       await _initFlutterBluePlus();
       device = _client.devices.singleWhere((d) => d.remoteId.str == remoteId);
     } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'device is not connected',
+      ));
       return (success: false, errorCode: 1, errorString: 'device is not connected');
     }
 
@@ -1176,6 +1188,18 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
     try {
       found = _findCharacteristic(device, serviceUuid, characteristicUuid, instanceId);
     } on StateError catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
       return (success: false, errorCode: 2, errorString: e.toString());
     }
     final service = found.service;
@@ -1187,6 +1211,18 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
         return Guid.fromBytes(d.uuid.value) == descriptorUuid;
       });
     } on StateError {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'descriptor not found',
+      ));
       return (success: false, errorCode: 5, errorString: 'descriptor not found');
     }
 
