@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 /// Command IDs for the binary BLE protocol.
@@ -133,6 +134,17 @@ ByteData _encode({
   final primaryBytes = primaryServiceUuid != null ? _utf8Encode(primaryServiceUuid) : Uint8List(0);
   final descBytes = descriptorUuid != null ? _utf8Encode(descriptorUuid) : Uint8List(0);
 
+  // Protocol length fields: 1 byte for strings, uint16 for value.
+  // Reject payloads that cannot round-trip instead of truncating them.
+  _checkStringLength('remoteId', remoteIdBytes.length);
+  _checkStringLength('serviceUuid', svcBytes.length);
+  _checkStringLength('characteristicUuid', charBytes.length);
+  _checkStringLength('primaryServiceUuid', primaryBytes.length);
+  _checkStringLength('descriptorUuid', descBytes.length);
+  if (value.length > 0xFFFF) {
+    throw FormatException('value too long for binary protocol: ${value.length} bytes');
+  }
+
   // total size = command(1) + flags(1) + instanceId(2) + remoteIdLen(1)
   //            + remoteId + svcLen(1) + svc + charLen(1) + char
   //            + primaryLen(1) + primary + descLen(1) + desc
@@ -227,8 +239,14 @@ ByteData encodeResponse({required bool success, int errorCode = 0, String errorS
   return data;
 }
 
-Uint8List _utf8Encode(String s) => Uint8List.fromList(s.codeUnits);
+void _checkStringLength(String name, int byteLength) {
+  if (byteLength > 0xFF) {
+    throw FormatException('$name too long for binary protocol: $byteLength bytes');
+  }
+}
+
+Uint8List _utf8Encode(String s) => Uint8List.fromList(utf8.encode(s));
 
 String _utf8Decode(Uint8List bytes, int offset, int length) {
-  return String.fromCharCodes(bytes.sublist(offset, offset + length));
+  return utf8.decode(bytes.sublist(offset, offset + length), allowMalformed: true);
 }

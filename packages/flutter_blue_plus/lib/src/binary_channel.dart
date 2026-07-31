@@ -28,6 +28,11 @@ class _BinaryWriteChannel {
     required List<int> value,
     required Duration timeout,
   }) async {
+    // instanceId is uint16 in the binary protocol; overflow cannot round-trip.
+    // Fall back to the MethodChannel path, which uses a full-width field.
+    if (instanceId > 0xFFFF) {
+      throw MissingPluginException();
+    }
 
     int flags = 0;
     if (withoutResponse) flags |= WriteFlags.withoutResponse;
@@ -69,6 +74,12 @@ class _BinaryWriteChannel {
     required List<int> value,
     required Duration timeout,
   }) async {
+    // instanceId is uint16 in the binary protocol; overflow cannot round-trip.
+    // Fall back to the MethodChannel path, which uses a full-width field.
+    if (instanceId > 0xFFFF) {
+      throw MissingPluginException();
+    }
+
     final request = encodeWriteDescriptor(
       flags: 0,
       instanceId: instanceId,
@@ -106,6 +117,12 @@ class _BinaryWriteChannel {
     required bool forceIndications,
     required Duration timeout,
   }) async {
+    // instanceId is uint16 in the binary protocol; overflow cannot round-trip.
+    // Fall back to the MethodChannel path, which uses a full-width field.
+    if (instanceId > 0xFFFF) {
+      throw MissingPluginException();
+    }
+
     int flags = 0;
     if (enable) flags |= NotifyFlags.enable;
     if (forceIndications) flags |= NotifyFlags.forceIndications;
