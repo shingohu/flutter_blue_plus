@@ -802,6 +802,17 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
     }
     final gatt = device.gatt;
     if (gatt == null) {
+      _onCharacteristicWrittenController.add(BmCharacteristicData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'gatt is null',
+      ));
       return (success: false, errorCode: 1, errorString: 'gatt is null');
     }
 
@@ -892,6 +903,18 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
     }
     final gatt = device.gatt;
     if (gatt == null) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: 'gatt is null',
+      ));
       return (success: false, errorCode: 1, errorString: 'gatt is null');
     }
 
