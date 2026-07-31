@@ -923,6 +923,18 @@ final class FlutterBluePlusWeb extends FlutterBluePlusPlatform {
     try {
       descriptor = await characteristic.getDescriptor(descriptorUuid.str128.toJS).toDart;
     } catch (e) {
+      _onDescriptorWrittenController.add(BmDescriptorData(
+        remoteId: DeviceIdentifier(remoteId),
+        primaryServiceUuid: null,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+        instanceId: instanceId,
+        descriptorUuid: descriptorUuid,
+        value: value,
+        success: false,
+        errorCode: 0,
+        errorString: e.toString(),
+      ));
       return (success: false, errorCode: 5, errorString: e.toString());
     }
 
