@@ -1463,6 +1463,10 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     [self.didWriteWithoutResponse removeObjectForKey:remoteId];
     [self clearCachedWritesForRemoteId:remoteId];
 
+    // fail any in-flight binary protocol operations for this device so the
+    // Dart-side futures do not hang forever after disconnect
+    [self.binaryHandler clearPendingRepliesForRemoteId:remoteId];
+
     // Unregister self as delegate for peripheral, not working #42
     peripheral.delegate = nil;
 

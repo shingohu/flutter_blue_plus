@@ -160,6 +160,18 @@ static const uint8_t FLAG_FORCE_INDICATIONS   = 1 << 1;
         }
     }
 
+    // CoreBluetooth silently drops writes longer than the allowed payload
+    // (notably withoutResponse) without any callback. Fail fast instead of
+    // replying success for a write that never happened.
+    CBCharacteristicWriteType writeType = withoutResponse
+        ? CBCharacteristicWriteWithoutResponse
+        : CBCharacteristicWriteWithResponse;
+    NSInteger maxLength = [peripheral maximumWriteValueLengthForType:writeType];
+    if (value.length > (NSUInteger)maxLength) {
+        reply([self encodeError:4 message:@"data longer than allowed"]);
+        return;
+    }
+
     if (withoutResponse) {
         // writeWithoutResponse: CoreBluetooth does NOT call didWriteValueForCharacteristic.
         // Reply immediately after submitting.
@@ -176,8 +188,13 @@ static const uint8_t FLAG_FORCE_INDICATIONS   = 1 << 1;
                          [self uuid128:serviceUuid],
                          [self uuid128:characteristicUuid],
                          instanceId];
+        FlutterBinaryReply superseded = nil;
         @synchronized(self) {
+            superseded = self.pendingReplies[key];
             self.pendingReplies[key] = reply;
+        }
+        if (superseded) {
+            superseded([self encodeError:4 message:@"operation superseded"]);
         }
         [peripheral writeValue:value forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
     }
@@ -213,8 +230,13 @@ static const uint8_t FLAG_FORCE_INDICATIONS   = 1 << 1;
                      [self uuid128:characteristicUuid],
                      instanceId,
                      [self uuid128:descriptorUuid]];
+    FlutterBinaryReply superseded = nil;
     @synchronized(self) {
+        superseded = self.pendingReplies[key];
         self.pendingReplies[key] = reply;
+    }
+    if (superseded) {
+        superseded([self encodeError:4 message:@"operation superseded"]);
     }
 
     [peripheral writeValue:value forDescriptor:descriptor];
@@ -240,8 +262,13 @@ static const uint8_t FLAG_FORCE_INDICATIONS   = 1 << 1;
                      [self uuid128:serviceUuid],
                      [self uuid128:characteristicUuid],
                      instanceId];
+    FlutterBinaryReply superseded = nil;
     @synchronized(self) {
+        superseded = self.pendingReplies[key];
         self.pendingReplies[key] = reply;
+    }
+    if (superseded) {
+        superseded([self encodeError:4 message:@"operation superseded"]);
     }
 
     [peripheral setNotifyValue:enable forCharacteristic:characteristic];
@@ -306,20 +333,67 @@ static const uint8_t FLAG_FORCE_INDICATIONS   = 1 << 1;
     }
 }
 
+- (void)clearPendingRepliesForRemoteId:(NSString *)remoteId {
+    // Keys are "<type>:<remoteId>:<...>" (e.g. "write:UUID:...",
+    // "desc:UUID:...", "notify:UUID:..."), so the remoteId segment is always
+    // followed by a colon.
+    NSString *prefixSegment = [NSString stringWithFormat:@":%@:", remoteId];
+    NSMutableArray<FlutterBinaryReply> *cancelled = [NSMutableArray array];
+    @synchronized(self) {
+        for (NSString *key in [self.pendingReplies allKeys]) {
+            if ([key rangeOfString:prefixSegment].location != NSNotFound) {
+                [cancelled addObject:self.pendingReplies[key]];
+                [self.pendingReplies removeObjectForKey:key];
+            }
+        }
+    }
+    for (FlutterBinaryReply reply in cancelled) {
+        reply([self encodeError:1 message:@"device disconnected"]);
+    }
+}
+
 // MARK: - Peripheral service/characteristic lookup
 
 - (CBCharacteristic *)findCharacteristic:(CBPeripheral *)peripheral
                              serviceUuid:(NSString *)serviceUuid
                        characteristicUuid:(NSString *)characteristicUuid
                               instanceId:(uint16_t)instanceId {
+    // Collect ALL services matching serviceUuid. instanceId semantics must
+    // mirror FlutterBluePlusPlugin getInstanceId / locateCharacteristic:
+    //   - single matching service: per-service count of same-UUID
+    //     characteristics, starting at 0 (getLocalInstanceId).
+    //   - multiple matching services: global count across EVERY characteristic
+    //     of every matching service (getInstanceId increments idx per
+    //     characteristic, not per matching UUID; locateCharacteristic matches
+    //     idx == instanceId && UUID match).
+    NSMutableArray<CBService *> *matches = [NSMutableArray array];
     for (CBService *service in peripheral.services) {
-        if (![self uuid128:service.UUID isEqual:serviceUuid]) continue;
+        if ([self uuid128:service.UUID isEqual:serviceUuid]) {
+            [matches addObject:service];
+        }
+    }
+    if (matches.count == 0) {
+        return nil;
+    }
+
+    if (matches.count <= 1) {
         NSInteger idx = 0;
-        for (CBCharacteristic *chr in service.characteristics) {
+        for (CBCharacteristic *chr in matches.firstObject.characteristics) {
             if ([self uuid128:chr.UUID isEqual:characteristicUuid]) {
                 if (idx == instanceId) return chr;
                 idx++;
             }
+        }
+        return nil;
+    }
+
+    NSInteger idx = 0;
+    for (CBService *service in matches) {
+        for (CBCharacteristic *chr in service.characteristics) {
+            if (idx == instanceId && [self uuid128:chr.UUID isEqual:characteristicUuid]) {
+                return chr;
+            }
+            idx++;
         }
     }
     return nil;
