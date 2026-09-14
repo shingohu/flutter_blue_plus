@@ -2543,20 +2543,14 @@ public class FlutterBluePlusPlugin implements
             // Check if there is a pending binary reply (from BinaryProtocolHandler)
             io.flutter.plugin.common.BinaryMessenger.BinaryReply binaryReply = mBinaryReplyMap.remove(key);
             if (binaryReply != null) {
-                // Complete the binary channel with the result.
-                // Reply on the main thread: we are on the GATT binder thread
-                // here, and replying to the binary messenger from a binder
-                // thread has been observed to race with engine teardown.
+                // Complete the binary channel with the result
                 boolean success = status == BluetoothGatt.GATT_SUCCESS;
-                final int replyStatus = status;
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (success) {
-                        binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
-                    } else {
-                        binaryReply.reply(BinaryProtocolHandler.encodeError(replyStatus, gattErrorString(replyStatus)));
-                    }
-                });
-                // Keep the legacy event for listeners and state tracking.
+                if (success) {
+                    binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
+                } else {
+                    binaryReply.reply(BinaryProtocolHandler.encodeError(status, gattErrorString(status)));
+                }
+                // Still send event for listeners that depend on it
             }
 
 
@@ -2638,15 +2632,11 @@ public class FlutterBluePlusPlugin implements
             io.flutter.plugin.common.BinaryMessenger.BinaryReply binaryReply = mBinaryReplyMap.remove(key);
             boolean success = status == BluetoothGatt.GATT_SUCCESS;
             if (binaryReply != null) {
-                // Reply on the main thread (see onCharacteristicWrite for why)
-                final int replyStatus = status;
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (success) {
-                        binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
-                    } else {
-                        binaryReply.reply(BinaryProtocolHandler.encodeError(replyStatus, gattErrorString(replyStatus)));
-                    }
-                });
+                if (success) {
+                    binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
+                } else {
+                    binaryReply.reply(BinaryProtocolHandler.encodeError(status, gattErrorString(status)));
+                }
             }
 
             // see: BmDescriptorData
