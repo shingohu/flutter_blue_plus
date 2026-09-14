@@ -92,8 +92,6 @@ public class FlutterBluePlusPlugin implements
 
     private Context context;
     private MethodChannel methodChannel;
-    private BinaryProtocolHandler binaryHandler;
-
     private static final String NAMESPACE = "flutter_blue_plus";
 
     private BluetoothManager mBluetoothManager;
@@ -113,9 +111,6 @@ public class FlutterBluePlusPlugin implements
     private final Map<String, Integer> mMtu = new ConcurrentHashMap<>();
     private final Map<String, BluetoothGatt> mAutoConnected = new ConcurrentHashMap<>();
     private final Map<String, byte[]> mWriteChr = new ConcurrentHashMap<>();
-    // Binary protocol reply callbacks (keyed by same key as mWriteChr)
-    private final Map<String, io.flutter.plugin.common.BinaryMessenger.BinaryReply> mBinaryReplyMap = new ConcurrentHashMap<>();
-
     private final Map<String, byte[]> mWriteDesc = new ConcurrentHashMap<>();
     private final Map<String, String> mAdvSeen = new ConcurrentHashMap<>();
     private final Map<String, Integer> mScanCounts = new ConcurrentHashMap<>();
@@ -205,11 +200,6 @@ public class FlutterBluePlusPlugin implements
 
         methodChannel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), NAMESPACE + "/methods");
         methodChannel.setMethodCallHandler(this);
-
-        // Register binary protocol handler for low-latency writes
-        binaryHandler = new BinaryProtocolHandler(this);
-        binaryHandler.register(flutterPluginBinding.getBinaryMessenger());
-
 
         IntentFilter filterAdapter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         this.context.registerReceiver(mBluetoothAdapterStateReceiver, filterAdapter);
@@ -1722,7 +1712,7 @@ public class FlutterBluePlusPlugin implements
     }
 
 
-    ChrFound locateCharacteristic(BluetoothGatt gatt,
+    private ChrFound locateCharacteristic(BluetoothGatt gatt,
                                         String primaryServiceUuid,
                                         String serviceUuid,
                                         String characteristicUuid,
@@ -1799,42 +1789,6 @@ public class FlutterBluePlusPlugin implements
         }
         return null;
     }
-
-    // ---- Binary protocol helper methods ----
-
-    /** Get a connected device by remoteId. */
-    public BluetoothGatt getConnectedDevice(String remoteId) {
-        return mConnectedDevices.get(remoteId);
-    }
-
-    /** Store a binary reply callback for later completion. */
-    public void storeBinaryReply(String key, io.flutter.plugin.common.BinaryMessenger.BinaryReply reply) {
-        // If an older reply is already pending for the same key (e.g. a second
-        // write to the same characteristic before the first completed), the old
-        // Dart-side future has already been dropped by its timeout. Complete it
-        // with an error now so a late callback can never deliver a stale result
-        // to it. put() atomically replaces the entry and returns the old reply.
-        io.flutter.plugin.common.BinaryMessenger.BinaryReply old = mBinaryReplyMap.put(key, reply);
-        if (old != null && old != reply) {
-            old.reply(BinaryProtocolHandler.encodeError(4, "operation superseded"));
-        }
-    }
-
-    /** Store write value for later retrieval in callback. */
-    public void storeWriteValue(String key, byte[] value) {
-        mWriteChr.put(key, value);
-    }
-
-    /** Make locateDescriptor accessible from BinaryProtocolHandler. */
-    public BluetoothGattDescriptor locateDescriptor(String descriptorUuid, BluetoothGattCharacteristic characteristic) {
-        for (BluetoothGattDescriptor d : characteristic.getDescriptors()) {
-            if (uuid128(d.getUuid()).equals(uuid128(descriptorUuid))) {
-                return d;
-            }
-        }
-        return null;
-    }
-
 
     private boolean filterKeywords(List<String> keywords, String target) {
         if (keywords.isEmpty()) {
@@ -1920,7 +1874,6 @@ public class FlutterBluePlusPlugin implements
         mMtu.clear();
         mWriteChr.clear();
         mWriteDesc.clear();
-        mBinaryReplyMap.clear();
         mAutoConnected.clear();
     }
 
@@ -2340,24 +2293,6 @@ public class FlutterBluePlusPlugin implements
                         // quickly run out of bluetooth resources, preventing new connections
                         gatt.close();
                     }
-
-                    // Fail any pending binary replies for this device (key format
-                    // "remoteId:...") so the Dart-side futures complete with an error
-                    // immediately instead of hanging until the 15s timeout, and so a
-                    // late onCharacteristicWrite/onDescriptorWrite callback can never
-                    // deliver a stale success to a request made before the disconnect.
-                    // mBinaryReplyMap is a ConcurrentHashMap: iterate with an explicit
-                    // iterator to remove entries safely.
-                    String replyPrefix = remoteId + ":";
-                    Iterator<Map.Entry<String, io.flutter.plugin.common.BinaryMessenger.BinaryReply>> replyIt =
-                            mBinaryReplyMap.entrySet().iterator();
-                    while (replyIt.hasNext()) {
-                        Map.Entry<String, io.flutter.plugin.common.BinaryMessenger.BinaryReply> entry = replyIt.next();
-                        if (entry.getKey().startsWith(replyPrefix)) {
-                            entry.getValue().reply(BinaryProtocolHandler.encodeError(1, "device disconnected"));
-                            replyIt.remove();
-                        }
-                    }
                 }
 
                 // see: BmConnectionStateResponse
@@ -2535,24 +2470,10 @@ public class FlutterBluePlusPlugin implements
             Integer instanceId = getInstanceId(gatt, characteristic);
 
             // what data did we write?
-            String key = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" + 
+            String key = remoteId + ":" + primaryServiceUuid + ":" + serviceUuid + ":" +
                 characteristicUuid + ":" + instanceId;
             byte[] value = mWriteChr.remove(key);
             if (value == null) value = new byte[0];
-
-            // Check if there is a pending binary reply (from BinaryProtocolHandler)
-            io.flutter.plugin.common.BinaryMessenger.BinaryReply binaryReply = mBinaryReplyMap.remove(key);
-            if (binaryReply != null) {
-                // Complete the binary channel with the result
-                boolean success = status == BluetoothGatt.GATT_SUCCESS;
-                if (success) {
-                    binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
-                } else {
-                    binaryReply.reply(BinaryProtocolHandler.encodeError(status, gattErrorString(status)));
-                }
-                // Still send event for listeners that depend on it
-            }
-
 
             // see: BmCharacteristicData
             HashMap<String, Object> response = new HashMap<>();
@@ -2627,17 +2548,6 @@ public class FlutterBluePlusPlugin implements
                 characteristicUuid + ":" + instanceId + ":" + descriptorUuid;
             byte[] value = mWriteDesc.remove(key);
             if (value == null) value = new byte[0];
-
-            // Check binary reply (from BinaryProtocolHandler)
-            io.flutter.plugin.common.BinaryMessenger.BinaryReply binaryReply = mBinaryReplyMap.remove(key);
-            boolean success = status == BluetoothGatt.GATT_SUCCESS;
-            if (binaryReply != null) {
-                if (success) {
-                    binaryReply.reply(BinaryProtocolHandler.encodeSuccess());
-                } else {
-                    binaryReply.reply(BinaryProtocolHandler.encodeError(status, gattErrorString(status)));
-                }
-            }
 
             // see: BmDescriptorData
             HashMap<String, Object> response = new HashMap<>();

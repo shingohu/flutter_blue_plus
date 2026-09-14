@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #import "./include/flutter_blue_plus_darwin/FlutterBluePlusPlugin.h"
-#import "BinaryProtocolHandler.h"
-
 #include <Foundation/NSObjCRuntime.h>
 
 #define Log(LEVEL, FORMAT, ...) [self log:LEVEL format:@"[FBP-iOS] " FORMAT, ##__VA_ARGS__]
@@ -13,11 +11,6 @@ NSString * const CCCD = @"2902";
 
 @interface CBUUID (CBUUIDAdditionsFlutterBluePlus)
 - (NSString *)uuidStr;
-@end
-
-@interface FlutterBluePlusPlugin (BinaryProtocol)
-@property (nonatomic, strong) BinaryProtocolHandler *binaryHandler;
-- (CBPeripheral *)getConnectedPeripheral:(NSString *)remoteId;
 @end
 
 @implementation CBUUID (CBUUIDAdditionsFlutterBluePlus)
@@ -76,12 +69,6 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     instance.writeChrs = [NSMutableDictionary new];
     instance.writeDescs = [NSMutableDictionary new];
     instance.scanCounts = [NSMutableDictionary new];
-
-    // Register binary protocol handler for low-latency writes
-    BinaryProtocolHandler *handler = [[BinaryProtocolHandler alloc] initWithPlugin:instance];
-    [handler registerWithMessenger:[registrar messenger]];
-    instance.binaryHandler = handler;
-
     instance.logLevel = LDEBUG;
     instance.showPowerAlert = @(YES);
     instance.restoreState = @(NO);
@@ -1463,10 +1450,6 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     [self.didWriteWithoutResponse removeObjectForKey:remoteId];
     [self clearCachedWritesForRemoteId:remoteId];
 
-    // fail any in-flight binary protocol operations for this device so the
-    // Dart-side futures do not hang forever after disconnect
-    [self.binaryHandler clearPendingRepliesForRemoteId:remoteId];
-
     // Unregister self as delegate for peripheral, not working #42
     peripheral.delegate = nil;
 
@@ -1734,16 +1717,6 @@ didDiscoverCharacteristicsForService:(CBService *)service
     if (!primaryService) {[result removeObjectForKey:@"primary_service_uuid"];}
 
     [self.methodChannel invokeMethod:@"OnCharacteristicWritten" arguments:result];
-
-    // Complete any pending binary reply
-    [self.binaryHandler completeWriteCharacteristic:remoteId
-                                  primaryServiceUuid:primarySvcKey
-                                        serviceUuid:serviceUuid
-                                  characteristicUuid:characteristicUuid
-                                         instanceId:[instanceId integerValue]
-                                            success:(error == nil)
-                                          errorCode:(error ? (int32_t)error.code : 0)
-                                        errorString:(error ? [error localizedDescription] : @"")];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral
@@ -1793,20 +1766,6 @@ didDiscoverCharacteristicsForService:(CBService *)service
     if (!primaryService) {[result removeObjectForKey:@"primary_service_uuid"];}
 
     [self.methodChannel invokeMethod:@"OnDescriptorWritten" arguments:result];
-
-    // Complete any pending binary reply (setNotifyValue)
-    NSString *remoteId = [peripheral.identifier UUIDString];
-    NSString *primarySvcKey = primaryService ? [primaryService.UUID uuidStr] : @"";
-    NSString *serviceUuid = [characteristic.service.UUID uuidStr];
-    NSString *characteristicUuid = [characteristic.UUID uuidStr];
-    [self.binaryHandler completeSetNotifyValue:remoteId
-                             primaryServiceUuid:primarySvcKey
-                                   serviceUuid:serviceUuid
-                             characteristicUuid:characteristicUuid
-                                    instanceId:[instanceId integerValue]
-                                       success:(error == nil)
-                                     errorCode:(error ? (int32_t)error.code : 0)
-                                   errorString:(error ? [error localizedDescription] : @"")];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral
@@ -1898,17 +1857,6 @@ didDiscoverCharacteristicsForService:(CBService *)service
     if (!primaryService) {[result removeObjectForKey:@"primary_service_uuid"];}
 
     [self.methodChannel invokeMethod:@"OnDescriptorWritten" arguments:result];
-
-    // Complete any pending binary reply
-    [self.binaryHandler completeWriteDescriptor:remoteId
-                              primaryServiceUuid:primarySvcKey
-                                    serviceUuid:serviceUuid
-                              characteristicUuid:characteristicUuid
-                                     instanceId:[instanceId integerValue]
-                                 descriptorUuid:descriptorUuid
-                                        success:(error == nil)
-                                      errorCode:(error ? (int32_t)error.code : 0)
-                                    errorString:(error ? [error localizedDescription] : @"")];
 }
 
 - (void)peripheralDidUpdateName:(CBPeripheral *)peripheral
