@@ -33,7 +33,8 @@ dependencies:
     path: ../flutter_blue_plus_linux
   flutter_blue_plus_web:
     path: ../flutter_blue_plus_web
-  flutter_blue_plus_winrt: '>=0.0.20'
+  flutter_blue_plus_winrt:
+    path: ../flutter_blue_plus_winrt
   flutter_blue_plus_ohos:
     path: ../flutter_blue_plus_ohos
   ble_permission:

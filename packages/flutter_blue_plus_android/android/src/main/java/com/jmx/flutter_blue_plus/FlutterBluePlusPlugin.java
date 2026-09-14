@@ -2556,7 +2556,7 @@ public class FlutterBluePlusPlugin implements
                         binaryReply.reply(BinaryProtocolHandler.encodeError(replyStatus, gattErrorString(replyStatus)));
                     }
                 });
-                // Still send event for listeners that depend on it
+                // Keep the legacy event for listeners and state tracking.
             }
 
 
