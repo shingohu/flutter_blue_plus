@@ -1,6 +1,7 @@
 /*
- * Copyright (C) 2024 Huawei Device Co., Ltd.
+ * Copyright (C) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
+ *
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -13,85 +14,177 @@
  * limitations under the License.
  */
 
+/** BleDevice 构造配置（参数对象，替代多位置参数）。 */
+export interface BleDeviceConfig {
+  /** 设备 ID（MAC），必填。 */
+  deviceId: string;
+  /** 设备名（初始可为空串，后续 setName 回填），必填。 */
+  name: string;
+  /** RSSI 值（可选）。 */
+  rssi?: number;
+  /** 原始广播字节数组（可选）。 */
+  scanRecord?: Uint8Array;
+  /** 扫描时间戳（毫秒，可选）。 */
+  timestampNanos?: number;
+  /** 是否可连接（可选）。 */
+  connectable?: boolean;
+}
+
+/**
+ * 扫描设备数据类。
+ *
+ * 承载一次 BLE 扫描发现的设备信息：设备名、deviceId（MAC）、原始广播字节、
+ * RSSI、时间戳与可连接性。由 BleScanManager.scanCallback 构造，
+ * 名称在解析广播/读取设备名后通过 setName 回填。
+ */
 export default class BleDevice {
-  mDeviceName: string = '';
-  mDeviceId: string = '';
-  mScanRecord: Uint8Array = new Uint8Array();
-  mRssi: number = 0;
-  mTimestampNanos: number = 0;
+  /** 设备名（解析广播 localName 或读取 GAP 0x2A00 得到，可能为空串）。 */
+  deviceName: string = '';
+  /** 设备 ID（即 MAC 地址），同时作为 remoteId。 */
+  deviceId: string = '';
+  /** 原始广播/扫描响应字节数组。 */
+  scanRecord: Uint8Array = new Uint8Array();
+  /** 本次扫描的 RSSI 值。 */
+  rssi: number = 0;
+  /** 扫描时间戳（毫秒）。 */
+  timestampNanos: number = 0;
+  /** 设备是否可连接。 */
   connectable: boolean = false;
 
-  public constructor(deviceId: string, name: string, rssi?: number, scanRecord ?: Uint8Array, timestampNanos ?: number,
-    connectable?: boolean) {
-    this.mDeviceName = name;
-    this.mDeviceId = deviceId;
-    if (connectable != undefined) {
-      this.connectable = connectable;
+  /**
+   * 构造扫描设备数据。
+   * @param config - 设备配置（deviceId/name 必填，其余可选）
+   */
+  public constructor(config: BleDeviceConfig) {
+    this.deviceName = config.name;
+    this.deviceId = config.deviceId;
+    if (config.connectable != undefined) {
+      this.connectable = config.connectable;
     }
-    if (scanRecord) {
-      this.mScanRecord = scanRecord;
+    if (config.scanRecord) {
+      this.scanRecord = config.scanRecord;
     }
-    if (rssi) {
-      this.mRssi = rssi;
+    if (config.rssi) {
+      this.rssi = config.rssi;
     }
-    if (timestampNanos) {
-      this.mTimestampNanos = timestampNanos;
+    if (config.timestampNanos) {
+      this.timestampNanos = config.timestampNanos;
     }
   }
 
+  /**
+   * 复制一个设备数据实例（仅复制 deviceId/name/rssi/scanRecord/timestampNanos，不含 connectable）。
+   * @param device - 源设备
+   * @returns 新的 BleDevice 实例
+   */
   public static copy(device: BleDevice): BleDevice {
-    return new BleDevice(device.mDeviceId, device.mDeviceName, device.mRssi, device.mScanRecord,
-      device.mTimestampNanos);
+    return new BleDevice({
+      deviceId: device.deviceId,
+      name: device.deviceName,
+      rssi: device.rssi,
+      scanRecord: device.scanRecord,
+      timestampNanos: device.timestampNanos,
+    });
   }
 
+  /**
+   * 获取设备名。
+   * @returns 设备名（可能为空串）
+   */
   public getName(): string {
-    return this.mDeviceName;
+    return this.deviceName;
   }
 
+  /**
+   * 设置设备名（解析广播/读取设备名后回填）。
+   * @param name - 设备名
+   */
   public setName(name: string): void {
-    this.mDeviceName = name;
+    this.deviceName = name;
   }
 
+  /**
+   * 获取 MAC 地址（同 deviceId）。
+   * @returns 设备 ID / MAC 地址
+   */
   public getMac(): string {
-    return this.mDeviceId;
+    return this.deviceId;
   }
 
+  /**
+   * 生成去重键（设备名 + deviceId），用于重复广播抑制。
+   * @returns 名称与 ID 拼接的键；两者之一为空时返回空串
+   */
   public getKey(): string {
-    if (this.mDeviceName != null && this.mDeviceId != null) {
-      return this.mDeviceName + this.mDeviceId;
+    if (this.deviceName != null && this.deviceId != null) {
+      // 名称 + ID 拼接作为去重键：重复广播据此合并，避免同一设备被多次上报
+      return this.deviceName + this.deviceId;
     }
-    return "";
+    // 名称或 ID 缺失时无法构成稳定去重键，返回空串让调用方跳过去重
+    return '';
   }
 
+  /**
+   * 获取是否可连接。
+   * @returns 是否可连接
+   */
   public getConnectable(): boolean {
     return this.connectable;
   }
 
+  /**
+   * 设置是否可连接。
+   * @param connectable - 是否可连接
+   */
   public setConnectable(connectable: boolean) {
     this.connectable = connectable;
   }
 
+  /**
+   * 获取原始广播字节数组。
+   * @returns 原始广播字节数组
+   */
   public getScanRecord(): Uint8Array {
-    return this.mScanRecord;
+    return this.scanRecord;
   }
 
+  /**
+   * 设置原始广播字节数组。
+   * @param scanRecord - 原始广播字节数组
+   */
   public setScanRecord(scanRecord: Uint8Array) {
-    this.mScanRecord = scanRecord;
+    this.scanRecord = scanRecord;
   }
 
+  /**
+   * 获取 RSSI 值。
+   * @returns RSSI 值（dBm）
+   */
   public getRssi(): number {
-    return this.mRssi;
+    return this.rssi;
   }
 
+  /**
+   * 设置 RSSI 值。
+   * @param rssi - RSSI 值
+   */
   public setRssi(rssi: number) {
-    this.mRssi = rssi;
+    this.rssi = rssi;
   }
 
+  /**
+   * 获取扫描时间戳（毫秒）。
+   * @returns 扫描时间戳（毫秒）
+   */
   public getTimestampNanos(): number {
-    return this.mTimestampNanos;
+    return this.timestampNanos;
   }
 
+  /**
+   * 设置扫描时间戳（毫秒）。
+   * @param timestampNanos - 扫描时间戳（毫秒）
+   */
   public setTimestampNanos(timestampNanos: number) {
-    this.mTimestampNanos = timestampNanos;
+    this.timestampNanos = timestampNanos;
   }
 }
