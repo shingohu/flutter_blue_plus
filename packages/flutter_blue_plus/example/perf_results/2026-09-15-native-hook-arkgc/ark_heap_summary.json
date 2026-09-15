@@ -1,0 +1,611 @@
+{
+  "source": "perf_results/2026-09-15-native-hook-arkgc/ark_after_gc.heapsnapshot",
+  "node_count": 176665,
+  "edge_count": 897593,
+  "local_handle_root": "LocalHandleRoot[14579]",
+  "direct_local_handle_edges": 14579,
+  "all_arraybuffer_nodes": 7024,
+  "unique_local_root_arraybuffers": 7020,
+  "local_root_buffer_groups": [
+    {
+      "native_bytes_per_buffer": 4227,
+      "buffer_count": 7000,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 536,
+            "node": {
+              "offset": 4720,
+              "id": 80647,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4728,
+                "id": 80649,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 4227
+              }
+            }
+          ]
+        },
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 538,
+            "node": {
+              "offset": 4736,
+              "id": 80651,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4744,
+                "id": 80653,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 4227
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 17,
+      "buffer_count": 8,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 530,
+            "node": {
+              "offset": 4664,
+              "id": 80635,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4672,
+                "id": 80637,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 17
+              }
+            }
+          ]
+        },
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 534,
+            "node": {
+              "offset": 4704,
+              "id": 80643,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4712,
+                "id": 80645,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 17
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 7,
+      "buffer_count": 2,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 518,
+            "node": {
+              "offset": 4552,
+              "id": 80611,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4560,
+                "id": 80613,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 7
+              }
+            }
+          ]
+        },
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 5976,
+            "node": {
+              "offset": 116784,
+              "id": 108663,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 116792,
+                "id": 108665,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 7
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 18,
+      "buffer_count": 2,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 532,
+            "node": {
+              "offset": 4688,
+              "id": 80639,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4696,
+                "id": 80641,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 18
+              }
+            }
+          ]
+        },
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 5982,
+            "node": {
+              "offset": 116832,
+              "id": 108675,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 116840,
+                "id": 108677,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 18
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 25,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 512,
+            "node": {
+              "offset": 4488,
+              "id": 80599,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4496,
+                "id": 80601,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 25
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 19,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 514,
+            "node": {
+              "offset": 4512,
+              "id": 80603,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4520,
+                "id": 80605,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 19
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 54,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 516,
+            "node": {
+              "offset": 4536,
+              "id": 80607,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4544,
+                "id": 80609,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 54
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 105,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 520,
+            "node": {
+              "offset": 4568,
+              "id": 80615,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4576,
+                "id": 80617,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 105
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 49,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 522,
+            "node": {
+              "offset": 4592,
+              "id": 80619,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4600,
+                "id": 80621,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 49
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 84,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 524,
+            "node": {
+              "offset": 4608,
+              "id": 80623,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4616,
+                "id": 80625,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 84
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 379,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 526,
+            "node": {
+              "offset": 4624,
+              "id": 80627,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4632,
+                "id": 80629,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 379
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "native_bytes_per_buffer": 356,
+      "buffer_count": 1,
+      "examples": [
+        {
+          "root": {
+            "offset": 8,
+            "id": 0,
+            "name": "LocalHandleRoot[14579]",
+            "self_bytes": 1,
+            "native_bytes": 0
+          },
+          "arraybuffer_edge": {
+            "edge_type": "element",
+            "edge_name": 528,
+            "node": {
+              "offset": 4640,
+              "id": 80631,
+              "name": "ArrayBuffer",
+              "self_bytes": 80,
+              "native_bytes": 0
+            }
+          },
+          "native_pointer_edges": [
+            {
+              "edge_type": "property",
+              "edge_name": "ArrayBufferData",
+              "node": {
+                "offset": 4648,
+                "id": 80633,
+                "name": "JSNativePointer",
+                "self_bytes": 40,
+                "native_bytes": 356
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

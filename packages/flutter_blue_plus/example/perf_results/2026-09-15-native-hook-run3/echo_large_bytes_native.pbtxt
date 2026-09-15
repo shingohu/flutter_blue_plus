@@ -1,0 +1,25 @@
+request_id: 1
+session_config {
+  buffers { pages: 16384 }
+}
+plugin_configs {
+  plugin_name: "nativehook"
+  sample_interval: 5000
+  config_data {
+    save_file: false
+    smb_pages: 16384
+    max_stack_depth: 30
+    process_name: "com.jmx.flutter_blue_plus_example"
+    string_compressed: true
+    fp_unwind: true
+    blocked: true
+    callframe_compress: true
+    record_accurately: true
+    offline_symbolization: true
+    startup_mode: false
+    statistics_interval: 10
+    sample_interval: 256
+    js_stack_report: 1
+    max_js_stack_depth: 10
+  }
+}

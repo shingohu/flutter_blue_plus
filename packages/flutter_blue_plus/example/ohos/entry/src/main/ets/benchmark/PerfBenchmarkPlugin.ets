@@ -52,12 +52,38 @@ export default class PerfBenchmarkPlugin implements FlutterPlugin, MethodCallHan
       case 'filesDir':
         result.success(this.filesDir);
         break;
+      case 'arkHeapSnapshot':
+        hidebug.dumpJsRawHeapData(true).then((path: string) => {
+          result.success(path);
+        }).catch((error: Error) => {
+          result.error('heap_snapshot', error.message, null);
+        });
+        break;
       case 'memory': {
         const mem = hidebug.getAppNativeMemInfo();
         const values = new Map<string, Object>();
         values.set('pss_kb', Number(mem.pss));
         values.set('rss_kb', Number(mem.rss));
         values.set('private_dirty_kb', Number(mem.privateDirty));
+        result.success(values);
+        break;
+      }
+      case 'memoryDetailed': {
+        const mem = hidebug.getAppNativeMemInfo();
+        const vm = hidebug.getAppVMMemoryInfo();
+        const gc = hidebug.getVMRuntimeStats();
+        const gcValues = new Map<string, Object>();
+        Object.keys(gc).forEach((key: string) => { gcValues.set(key, gc[key]); });
+        const values = new Map<string, Object>();
+        values.set('pss_kb', Number(mem.pss));
+        values.set('rss_kb', Number(mem.rss));
+        values.set('native_allocated_bytes', Number(hidebug.getNativeHeapAllocatedSize()));
+        values.set('native_free_bytes', Number(hidebug.getNativeHeapFreeSize()));
+        values.set('native_heap_bytes', Number(hidebug.getNativeHeapSize()));
+        values.set('ark_heap_used_kb', Number(vm.heapUsed));
+        values.set('ark_heap_capacity_kb', Number(vm.totalHeap));
+        values.set('ark_arrays_kb', Number(vm.allArraySize));
+        values.set('ark_gc', gcValues);
         result.success(values);
         break;
       }
@@ -83,6 +109,7 @@ export default class PerfBenchmarkPlugin implements FlutterPlugin, MethodCallHan
     const hz = args.get('hz') as number;
     const size = args.get('size') as number;
     const plugin = args.get('plugin') as boolean;
+    const retainSamples = args.get('retain_samples') !== false;
     if (count < 1 || count > 10000 || hz < 1 || hz > 1000 || size < 4 || size > 65536) {
       result.error('arguments', 'Invalid event parameters', null);
       return;
@@ -100,7 +127,7 @@ export default class PerfBenchmarkPlugin implements FlutterPlugin, MethodCallHan
     this.pending = result;
     const finishReply = (start: number, failed: boolean): void => {
       if (generation !== this.generation) { return; }
-      if (failed) { errors++; } else { rtts.push(this.nowUs() - start); }
+      if (failed) { errors++; } else if (retainSamples) { rtts.push(this.nowUs() - start); }
       replies++;
       if (sent === count && replies === count) {
         clearTimeout(this.deadline);
@@ -132,7 +159,7 @@ export default class PerfBenchmarkPlugin implements FlutterPlugin, MethodCallHan
       envelope.set('error_code', 0);
       envelope.set('error_string', 'GATT_SUCCESS');
       const start = this.nowUs();
-      if (previous !== 0) { intervals.push(start - previous); }
+      if (retainSamples && previous !== 0) { intervals.push(start - previous); }
       previous = start;
       // RTT includes codec, engine scheduling, Dart handler and its automatic reply.
       const callback: MethodResult = {

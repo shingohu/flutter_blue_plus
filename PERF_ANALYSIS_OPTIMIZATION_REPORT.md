@@ -237,6 +237,16 @@ Dart 侧已经减少了一次请求方向的 value 拷贝，但还需要确认 N
 
 ## 6. 建议的测量方案
 
+2026-09-15 已完成独立 OHOS 宿主的真机模拟通信基准，结果见
+[OHOS 真机测量报告](PERF_OHOS_DEVICE_RESULTS.md)。共 144 组测试，63,000 次 echo 和
+24,840 个事件；结论仅覆盖报告列出的实测路径，以下完整 BLE 分段方案仍需外设验证。
+
+同日追加了静态 UI、独立进程、无时延样本累积的 [内存分层实测](PERF_OHOS_MEMORY_RESULTS.md)。
+244 B 通信组出现自然恢复，Dart GC 后已用堆接近空闲组；4096 B 字节数组仍有明显原生已分配增量。
+首轮大幅 PSS 增长的根因尚未确定，不能直接判定为插件泄漏或据此重做传输协议。
+追加六轮、每组 21,000 次大字节数组回环的配对实验后，关闭/开启周期 VM 采样仍分别有
+约 107.26/107.88 MiB 原生已分配增量。周期采样不是该增长的必要条件；后续 nativehook 与 ArkTS 堆快照已将关键 7,000 个消息 buffer 定位到 Engine/N-API local handle，详见 [OHOS 原生分配归因结果](PERF_OHOS_NATIVE_ALLOCATION_RESULTS.md)。
+
 ### 6.1 统一操作 ID
 
 为每次读、写、通知和描述符操作生成唯一 ID，并记录单调时钟，不使用墙上时间进行耗时计算。
@@ -373,4 +383,4 @@ Native handle、UUID 字符串和 Stream 缓存都必须定义生命周期。断
 4. Android/iOS 主线程调度造成的长尾；
 5. `writeWithoutResponse` 的背压和完成语义。
 
-建议先完成分段基准和 P95/P99 数据，再决定采用事件索引、Native handle 缓存、直连 reply，还是重新设计可选二进制数据通道。
+建议先完成分段基准和 P95/P99 数据，再决定采用事件索引、Native handle 缓存、直连 reply，还是重新设计可选二进制数据通道。OHOS Engine/N-API local handle 保留问题已记录为外部运行时风险，本插件当前不跟进 Engine 修复，也不以重做二进制传输作为默认修复。

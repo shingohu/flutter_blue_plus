@@ -1,0 +1,183 @@
+{
+  "case": "echo_large_list",
+  "host_started_utc": "2026-09-15T04:49:57.003Z",
+  "samples": [
+    {
+      "host_utc": "2026-09-15T04:50:17.237Z",
+      "case": "echo_large_list",
+      "phase": "baseline",
+      "cycle": 0,
+      "elapsed_us": 26259,
+      "pid": 2097,
+      "operations": 0,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 79749,
+        "rss_kb": 168668,
+        "native_allocated_bytes": 65520856,
+        "native_free_bytes": 9879496,
+        "native_heap_bytes": 75400288,
+        "ark_heap_used_kb": 4058,
+        "ark_heap_capacity_kb": 11776,
+        "ark_arrays_kb": 3,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 18132096,
+          "ark.gc.gc-bytes-freed": 7110480,
+          "ark.gc.gc-count": 3,
+          "ark.gc.gc-time": 68
+        }
+      },
+      "dart": {
+        "type": "MemoryUsage",
+        "heapUsage": 7128352,
+        "heapCapacity": 13770752,
+        "externalUsage": 608
+      }
+    },
+    {
+      "host_utc": "2026-09-15T04:50:21.198Z",
+      "case": "echo_large_list",
+      "phase": "baseline",
+      "cycle": 0,
+      "elapsed_us": 3983951,
+      "pid": 2097,
+      "operations": 0,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 80863,
+        "rss_kb": 170024,
+        "native_allocated_bytes": 66643208,
+        "native_free_bytes": 5005184,
+        "native_heap_bytes": 71651976,
+        "ark_heap_used_kb": 4074,
+        "ark_heap_capacity_kb": 11776,
+        "ark_arrays_kb": 5,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 18137280,
+          "ark.gc.gc-bytes-freed": 7110480,
+          "ark.gc.gc-count": 3,
+          "ark.gc.gc-time": 68
+        }
+      },
+      "dart": {
+        "type": "MemoryUsage",
+        "heapUsage": 7151824,
+        "heapCapacity": 13770752,
+        "externalUsage": 608
+      }
+    },
+    {
+      "host_utc": "2026-09-15T04:50:24.737Z",
+      "case": "echo_large_list",
+      "phase": "baseline",
+      "cycle": 0,
+      "elapsed_us": 7525650,
+      "pid": 2097,
+      "operations": 0,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 81080,
+        "rss_kb": 170256,
+        "native_allocated_bytes": 66697976,
+        "native_free_bytes": 5036392,
+        "native_heap_bytes": 71735088,
+        "ark_heap_used_kb": 4093,
+        "ark_heap_capacity_kb": 11776,
+        "ark_arrays_kb": 6,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 18142464,
+          "ark.gc.gc-bytes-freed": 7110480,
+          "ark.gc.gc-count": 3,
+          "ark.gc.gc-time": 68
+        }
+      },
+      "dart": {
+        "type": "MemoryUsage",
+        "heapUsage": 7171712,
+        "heapCapacity": 13770752,
+        "externalUsage": 608
+      }
+    },
+    {
+      "host_utc": "2026-09-15T04:50:27.281Z",
+      "case": "echo_large_list",
+      "phase": "failed",
+      "cycle": 1,
+      "elapsed_us": 10060221,
+      "pid": 2097,
+      "operations": 0,
+      "errors": 0,
+      "finished": true,
+      "failure": "type 'List<Object?>' is not a subtype of type 'List<int>?' in type cast\n#0      _load (package:flutter_blue_plus_example/memory_main.dart:117)\n<asynchronous suspension>\n#1      _run (package:flutter_blue_plus_example/memory_main.dart:176)\n<asynchronous suspension>\n",
+      "native": {
+        "pss_kb": 84054,
+        "rss_kb": 173124,
+        "native_allocated_bytes": 68429240,
+        "native_free_bytes": 5201096,
+        "native_heap_bytes": 73631200,
+        "ark_heap_used_kb": 5006,
+        "ark_heap_capacity_kb": 12544,
+        "ark_arrays_kb": 10,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 19224112,
+          "ark.gc.gc-bytes-freed": 7110480,
+          "ark.gc.gc-count": 3,
+          "ark.gc.gc-time": 68
+        }
+      },
+      "dart": {
+        "type": "MemoryUsage",
+        "heapUsage": 7600592,
+        "heapCapacity": 13770752,
+        "externalUsage": 21344
+      }
+    }
+  ],
+  "vm_service": "http://127.0.0.1:52464/",
+  "before_start": {
+    "host_utc": "2026-09-15T04:50:17.200Z",
+    "case": "echo_large_list",
+    "phase": "ready",
+    "cycle": 0,
+    "elapsed_us": 0,
+    "pid": 2097,
+    "operations": 0,
+    "errors": 0,
+    "finished": false,
+    "failure": null,
+    "native": {
+      "pss_kb": 79000,
+      "rss_kb": 167556,
+      "native_allocated_bytes": 65357896,
+      "native_free_bytes": 9825000,
+      "native_heap_bytes": 75184576,
+      "ark_heap_used_kb": 4029,
+      "ark_heap_capacity_kb": 11776,
+      "ark_arrays_kb": 2,
+      "ark_gc": {
+        "ark.gc.fullgc-longtime-count": 0,
+        "ark.gc.gc-bytes-allocated": 18125832,
+        "ark.gc.gc-bytes-freed": 7110480,
+        "ark.gc.gc-count": 3,
+        "ark.gc.gc-time": 68
+      }
+    },
+    "dart": {
+      "type": "MemoryUsage",
+      "heapUsage": 7072000,
+      "heapCapacity": 13770752,
+      "externalUsage": 544
+    }
+  },
+  "failure": "Error: type 'List<Object?>' is not a subtype of type 'List<int>?' in type cast\n#0      _load (package:flutter_blue_plus_example/memory_main.dart:117)\n<asynchronous suspension>\n#1      _run (package:flutter_blue_plus_example/memory_main.dart:176)\n<asynchronous suspension>\n"
+}

@@ -1,0 +1,420 @@
+{
+  "runs": [
+    {
+      "sampling": "endpoints",
+      "pid": 52671,
+      "case": "echo_large_bytes",
+      "cycles": 6,
+      "operations_per_cycle": 3500,
+      "host_started_utc": "2026-09-15T06:36:15.061Z",
+      "host_finished_utc": "2026-09-15T06:41:14.722Z",
+      "vm_samples_including_completion": 1,
+      "baseline": {
+        "checkpoint": "baseline",
+        "cycle": 0,
+        "elapsed_s": 10.060484,
+        "operations": 0,
+        "pss_mib": 78.0224609375,
+        "native_allocated_mib": 62.923866271972656,
+        "native_free_mib": 4.174873352050781,
+        "ark_used_mib": 3.958984375,
+        "ark_capacity_mib": 11.5
+      },
+      "final": {
+        "checkpoint": "complete",
+        "cycle": 6,
+        "elapsed_s": 271.769457,
+        "operations": 21000,
+        "pss_mib": 220.5107421875,
+        "native_allocated_mib": 170.18817138671875,
+        "native_free_mib": 11.65234375,
+        "ark_used_mib": 10.4677734375,
+        "ark_capacity_mib": 15.5
+      },
+      "delta": {
+        "elapsed_s": 261.708973,
+        "operations": 21000,
+        "pss_mib": 142.48828125,
+        "native_allocated_mib": 107.2643051147461,
+        "native_free_mib": 7.477470397949219,
+        "ark_used_mib": 6.5087890625,
+        "ark_capacity_mib": 4
+      },
+      "dart_final_mib": 11.984375,
+      "dart_post_gc_mib": 5.983917236328125,
+      "post_dart_gc": {
+        "elapsed_s": 276.398083,
+        "operations": 21000,
+        "pss_mib": 220.59375,
+        "native_allocated_mib": 172.01626586914062,
+        "native_free_mib": 7.2423095703125,
+        "ark_used_mib": 10.5,
+        "ark_capacity_mib": 15.5
+      },
+      "checkpoints": [
+        {
+          "checkpoint": "baseline",
+          "cycle": 0,
+          "elapsed_s": 10.060484,
+          "operations": 0,
+          "pss_mib": 78.0224609375,
+          "native_allocated_mib": 62.923866271972656,
+          "native_free_mib": 4.174873352050781,
+          "ark_used_mib": 3.958984375,
+          "ark_capacity_mib": 11.5
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 1,
+          "elapsed_s": 30.305072,
+          "operations": 3500,
+          "pss_mib": 172,
+          "native_allocated_mib": 85.07540130615234,
+          "native_free_mib": 11.346794128417969,
+          "ark_used_mib": 9.9404296875,
+          "ark_capacity_mib": 15.5
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 1,
+          "elapsed_s": 50.364739,
+          "operations": 3500,
+          "pss_mib": 124.4365234375,
+          "native_allocated_mib": 82.99193572998047,
+          "native_free_mib": 6.150962829589844,
+          "ark_used_mib": 8.466796875,
+          "ark_capacity_mib": 13.25
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 2,
+          "elapsed_s": 70.552764,
+          "operations": 7000,
+          "pss_mib": 195.4609375,
+          "native_allocated_mib": 120.0861587524414,
+          "native_free_mib": 3.8980636596679688,
+          "ark_used_mib": 18.8828125,
+          "ark_capacity_mib": 22.5
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 2,
+          "elapsed_s": 90.610118,
+          "operations": 7000,
+          "pss_mib": 168.1494140625,
+          "native_allocated_mib": 120.60017395019531,
+          "native_free_mib": 4.485786437988281,
+          "ark_used_mib": 11.94140625,
+          "ark_capacity_mib": 15.5
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 3,
+          "elapsed_s": 110.908069,
+          "operations": 10500,
+          "pss_mib": 219.1396484375,
+          "native_allocated_mib": 121.38312530517578,
+          "native_free_mib": 18.826889038085938,
+          "ark_used_mib": 9.9033203125,
+          "ark_capacity_mib": 16.25
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 3,
+          "elapsed_s": 130.955837,
+          "operations": 10500,
+          "pss_mib": 185.8896484375,
+          "native_allocated_mib": 121.48199462890625,
+          "native_free_mib": 3.8991546630859375,
+          "ark_used_mib": 9.919921875,
+          "ark_capacity_mib": 16.25
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 4,
+          "elapsed_s": 151.15831,
+          "operations": 14000,
+          "pss_mib": 234.0400390625,
+          "native_allocated_mib": 154.91190338134766,
+          "native_free_mib": 3.8191299438476562,
+          "ark_used_mib": 17.7109375,
+          "ark_capacity_mib": 21.75
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 4,
+          "elapsed_s": 171.214794,
+          "operations": 14000,
+          "pss_mib": 205.0361328125,
+          "native_allocated_mib": 139.26512145996094,
+          "native_free_mib": 14.922576904296875,
+          "ark_used_mib": 9.666015625,
+          "ark_capacity_mib": 14.75
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 5,
+          "elapsed_s": 191.387644,
+          "operations": 17500,
+          "pss_mib": 248.1513671875,
+          "native_allocated_mib": 173.19839477539062,
+          "native_free_mib": 4.298744201660156,
+          "ark_used_mib": 17.607421875,
+          "ark_capacity_mib": 21.75
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 5,
+          "elapsed_s": 211.456827,
+          "operations": 17500,
+          "pss_mib": 216.0927734375,
+          "native_allocated_mib": 166.27735900878906,
+          "native_free_mib": 4.2366180419921875,
+          "ark_used_mib": 17.6240234375,
+          "ark_capacity_mib": 21.75
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 6,
+          "elapsed_s": 231.64733,
+          "operations": 21000,
+          "pss_mib": 260.2060546875,
+          "native_allocated_mib": 180.0422821044922,
+          "native_free_mib": 3.8883590698242188,
+          "ark_used_mib": 15.1669921875,
+          "ark_capacity_mib": 20
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 6,
+          "elapsed_s": 251.696059,
+          "operations": 21000,
+          "pss_mib": 228.515625,
+          "native_allocated_mib": 180.1493682861328,
+          "native_free_mib": 3.8840484619140625,
+          "ark_used_mib": 15.1826171875,
+          "ark_capacity_mib": 20
+        },
+        {
+          "checkpoint": "complete",
+          "cycle": 6,
+          "elapsed_s": 271.769457,
+          "operations": 21000,
+          "pss_mib": 220.5107421875,
+          "native_allocated_mib": 170.18817138671875,
+          "native_free_mib": 11.65234375,
+          "ark_used_mib": 10.4677734375,
+          "ark_capacity_mib": 15.5
+        }
+      ]
+    },
+    {
+      "sampling": "periodic",
+      "pid": 57544,
+      "case": "echo_large_bytes",
+      "cycles": 6,
+      "operations_per_cycle": 3500,
+      "host_started_utc": "2026-09-15T06:41:55.370Z",
+      "host_finished_utc": "2026-09-15T06:46:50.521Z",
+      "vm_samples_including_completion": 98,
+      "baseline": {
+        "checkpoint": "baseline",
+        "cycle": 0,
+        "elapsed_s": 10.064012,
+        "operations": 0,
+        "pss_mib": 80.845703125,
+        "native_allocated_mib": 63.73828887939453,
+        "native_free_mib": 9.249069213867188,
+        "ark_used_mib": 4.01171875,
+        "ark_capacity_mib": 11.5
+      },
+      "final": {
+        "checkpoint": "complete",
+        "cycle": 6,
+        "elapsed_s": 273.931009,
+        "operations": 21000,
+        "pss_mib": 229.708984375,
+        "native_allocated_mib": 171.61334228515625,
+        "native_free_mib": 5.0411224365234375,
+        "ark_used_mib": 10.6181640625,
+        "ark_capacity_mib": 15.5
+      },
+      "delta": {
+        "elapsed_s": 263.866997,
+        "operations": 21000,
+        "pss_mib": 148.86328125,
+        "native_allocated_mib": 107.87505340576172,
+        "native_free_mib": -4.20794677734375,
+        "ark_used_mib": 6.6064453125,
+        "ark_capacity_mib": 4
+      },
+      "dart_final_mib": 14.8585205078125,
+      "dart_post_gc_mib": 5.983917236328125,
+      "post_dart_gc": {
+        "elapsed_s": 280.943292,
+        "operations": 21000,
+        "pss_mib": 234.998046875,
+        "native_allocated_mib": 172.2832489013672,
+        "native_free_mib": 6.455665588378906,
+        "ark_used_mib": 10.6484375,
+        "ark_capacity_mib": 15.5
+      },
+      "checkpoints": [
+        {
+          "checkpoint": "baseline",
+          "cycle": 0,
+          "elapsed_s": 10.064012,
+          "operations": 0,
+          "pss_mib": 80.845703125,
+          "native_allocated_mib": 63.73828887939453,
+          "native_free_mib": 9.249069213867188,
+          "ark_used_mib": 4.01171875,
+          "ark_capacity_mib": 11.5
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 1,
+          "elapsed_s": 30.469339,
+          "operations": 3500,
+          "pss_mib": 178.802734375,
+          "native_allocated_mib": 87.45069885253906,
+          "native_free_mib": 16.34355926513672,
+          "ark_used_mib": 10.0390625,
+          "ark_capacity_mib": 15.75
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 1,
+          "elapsed_s": 50.529478,
+          "operations": 3500,
+          "pss_mib": 129.3720703125,
+          "native_allocated_mib": 85.64564514160156,
+          "native_free_mib": 8.407920837402344,
+          "ark_used_mib": 8.4853515625,
+          "ark_capacity_mib": 13.5
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 2,
+          "elapsed_s": 71.072346,
+          "operations": 7000,
+          "pss_mib": 201.029296875,
+          "native_allocated_mib": 122.63514709472656,
+          "native_free_mib": 6.283439636230469,
+          "ark_used_mib": 18.8974609375,
+          "ark_capacity_mib": 22.5
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 2,
+          "elapsed_s": 91.128221,
+          "operations": 7000,
+          "pss_mib": 174.3544921875,
+          "native_allocated_mib": 122.63484954833984,
+          "native_free_mib": 6.2377777099609375,
+          "ark_used_mib": 12.0400390625,
+          "ark_capacity_mib": 15.75
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 3,
+          "elapsed_s": 111.749512,
+          "operations": 10500,
+          "pss_mib": 217.65625,
+          "native_allocated_mib": 124.34477996826172,
+          "native_free_mib": 15.227859497070312,
+          "ark_used_mib": 10.4208984375,
+          "ark_capacity_mib": 16.5
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 3,
+          "elapsed_s": 131.786545,
+          "operations": 10500,
+          "pss_mib": 193.521484375,
+          "native_allocated_mib": 124.2844467163086,
+          "native_free_mib": 5.2589111328125,
+          "ark_used_mib": 10.5439453125,
+          "ark_capacity_mib": 16.75
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 4,
+          "elapsed_s": 152.357705,
+          "operations": 14000,
+          "pss_mib": 244.5234375,
+          "native_allocated_mib": 158.05429077148438,
+          "native_free_mib": 5.092964172363281,
+          "ark_used_mib": 18.3876953125,
+          "ark_capacity_mib": 22.25
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 4,
+          "elapsed_s": 172.42102,
+          "operations": 14000,
+          "pss_mib": 229.8994140625,
+          "native_allocated_mib": 157.65265655517578,
+          "native_free_mib": 4.913360595703125,
+          "ark_used_mib": 18.509765625,
+          "ark_capacity_mib": 22.25
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 5,
+          "elapsed_s": 193.137634,
+          "operations": 17500,
+          "pss_mib": 261.87109375,
+          "native_allocated_mib": 172.74327850341797,
+          "native_free_mib": 4.652076721191406,
+          "ark_used_mib": 16.23828125,
+          "ark_capacity_mib": 20.75
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 5,
+          "elapsed_s": 213.201392,
+          "operations": 17500,
+          "pss_mib": 226.689453125,
+          "native_allocated_mib": 165.4244384765625,
+          "native_free_mib": 4.7230377197265625,
+          "ark_used_mib": 16.3603515625,
+          "ark_capacity_mib": 20.75
+        },
+        {
+          "checkpoint": "load_end",
+          "cycle": 6,
+          "elapsed_s": 233.843632,
+          "operations": 21000,
+          "pss_mib": 277.5625,
+          "native_allocated_mib": 180.3124771118164,
+          "native_free_mib": 4.772125244140625,
+          "ark_used_mib": 14.22265625,
+          "ark_capacity_mib": 19.25
+        },
+        {
+          "checkpoint": "recovery_end",
+          "cycle": 6,
+          "elapsed_s": 253.897958,
+          "operations": 21000,
+          "pss_mib": 233.572265625,
+          "native_allocated_mib": 171.57279205322266,
+          "native_free_mib": 10.174598693847656,
+          "ark_used_mib": 10.4775390625,
+          "ark_capacity_mib": 15.5
+        },
+        {
+          "checkpoint": "complete",
+          "cycle": 6,
+          "elapsed_s": 273.931009,
+          "operations": 21000,
+          "pss_mib": 229.708984375,
+          "native_allocated_mib": 171.61334228515625,
+          "native_free_mib": 5.0411224365234375,
+          "ark_used_mib": 10.6181640625,
+          "ark_capacity_mib": 15.5
+        }
+      ]
+    }
+  ]
+}

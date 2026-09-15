@@ -1,0 +1,1362 @@
+{
+  "case": "echo_large_bytes",
+  "config": {
+    "sampling": "endpoints",
+    "cycles": 6,
+    "operations_per_cycle": 3500,
+    "checkpoints": true
+  },
+  "host_started_utc": "2026-09-15T06:36:15.061Z",
+  "samples": [
+    {
+      "host_utc": "2026-09-15T06:41:10.655Z",
+      "sample_rpc_ms": 75,
+      "case": "echo_large_bytes",
+      "phase": "complete",
+      "cycle": 6,
+      "elapsed_us": 272339109,
+      "pid": 52671,
+      "operations": 21000,
+      "errors": 0,
+      "finished": true,
+      "failure": null,
+      "native": {
+        "pss_kb": 226107,
+        "rss_kb": 319380,
+        "native_allocated_bytes": 178995304,
+        "native_free_bytes": 12359296,
+        "native_heap_bytes": 191354536,
+        "ark_heap_used_kb": 10736,
+        "ark_heap_capacity_kb": 15872,
+        "ark_arrays_kb": 1644,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 1,
+          "ark.gc.gc-bytes-allocated": 301922080,
+          "ark.gc.gc-bytes-freed": 289716664,
+          "ark.gc.gc-count": 54,
+          "ark.gc.gc-time": 895
+        }
+      },
+      "config": {
+        "cycles": 6,
+        "operations_per_cycle": 3500,
+        "checkpoints": true
+      },
+      "checkpoints": [
+        {
+          "case": "echo_large_bytes",
+          "phase": "baseline",
+          "cycle": 0,
+          "elapsed_us": 10060484,
+          "pid": 52671,
+          "operations": 0,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 79895,
+            "rss_kb": 170072,
+            "native_allocated_bytes": 65980456,
+            "native_free_bytes": 4377672,
+            "native_heap_bytes": 70358064,
+            "ark_heap_used_kb": 4054,
+            "ark_heap_capacity_kb": 11776,
+            "ark_arrays_kb": 3,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 18130920,
+              "ark.gc.gc-bytes-freed": 7110480,
+              "ark.gc.gc-count": 3,
+              "ark.gc.gc-time": 68
+            }
+          },
+          "checkpoint": "baseline"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 1,
+          "elapsed_us": 30305072,
+          "pid": 52671,
+          "operations": 3500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 176128,
+            "rss_kb": 269176,
+            "native_allocated_bytes": 89208024,
+            "native_free_bytes": 11897976,
+            "native_heap_bytes": 101105936,
+            "ark_heap_used_kb": 10179,
+            "ark_heap_capacity_kb": 15872,
+            "ark_arrays_kb": 490,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 65428960,
+              "ark.gc.gc-bytes-freed": 52261128,
+              "ark.gc.gc-count": 11,
+              "ark.gc.gc-time": 152
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 1,
+          "elapsed_us": 50364739,
+          "pid": 52671,
+          "operations": 3500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 127423,
+            "rss_kb": 220936,
+            "native_allocated_bytes": 87023352,
+            "native_free_bytes": 6449752,
+            "native_heap_bytes": 93473040,
+            "ark_heap_used_kb": 8670,
+            "ark_heap_capacity_kb": 13568,
+            "ark_arrays_kb": 274,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 65443656,
+              "ark.gc.gc-bytes-freed": 55341688,
+              "ark.gc.gc-count": 13,
+              "ark.gc.gc-time": 194
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 2,
+          "elapsed_us": 70552764,
+          "pid": 52671,
+          "operations": 7000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 200152,
+            "rss_kb": 293612,
+            "native_allocated_bytes": 125919464,
+            "native_free_bytes": 4087416,
+            "native_heap_bytes": 130006816,
+            "ark_heap_used_kb": 19336,
+            "ark_heap_capacity_kb": 23040,
+            "ark_arrays_kb": 1941,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 112676312,
+              "ark.gc.gc-bytes-freed": 90016480,
+              "ark.gc.gc-count": 19,
+              "ark.gc.gc-time": 260
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 2,
+          "elapsed_us": 90610118,
+          "pid": 52671,
+          "operations": 7000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 172185,
+            "rss_kb": 265804,
+            "native_allocated_bytes": 126458448,
+            "native_free_bytes": 4703688,
+            "native_heap_bytes": 131162136,
+            "ark_heap_used_kb": 12228,
+            "ark_heap_capacity_kb": 15872,
+            "ark_arrays_kb": 620,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 112681848,
+              "ark.gc.gc-bytes-freed": 97201248,
+              "ark.gc.gc-count": 20,
+              "ark.gc.gc-time": 271
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 3,
+          "elapsed_us": 110908069,
+          "pid": 52671,
+          "operations": 10500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 224399,
+            "rss_kb": 317700,
+            "native_allocated_bytes": 127279432,
+            "native_free_bytes": 19741424,
+            "native_heap_bytes": 147020792,
+            "ark_heap_used_kb": 10141,
+            "ark_heap_capacity_kb": 16640,
+            "ark_arrays_kb": 917,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 159752160,
+              "ark.gc.gc-bytes-freed": 144830688,
+              "ark.gc.gc-count": 28,
+              "ark.gc.gc-time": 408
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 3,
+          "elapsed_us": 130955837,
+          "pid": 52671,
+          "operations": 10500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 190351,
+            "rss_kb": 283464,
+            "native_allocated_bytes": 127383104,
+            "native_free_bytes": 4088560,
+            "native_heap_bytes": 131471600,
+            "ark_heap_used_kb": 10158,
+            "ark_heap_capacity_kb": 16640,
+            "ark_arrays_kb": 919,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 159757696,
+              "ark.gc.gc-bytes-freed": 144830688,
+              "ark.gc.gc-count": 28,
+              "ark.gc.gc-time": 408
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 4,
+          "elapsed_us": 151158310,
+          "pid": 52671,
+          "operations": 14000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 239657,
+            "rss_kb": 332768,
+            "native_allocated_bytes": 162436904,
+            "native_free_bytes": 4004648,
+            "native_heap_bytes": 166441488,
+            "ark_heap_used_kb": 18136,
+            "ark_heap_capacity_kb": 22272,
+            "ark_arrays_kb": 2203,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 207172480,
+              "ark.gc.gc-bytes-freed": 182376992,
+              "ark.gc.gc-count": 35,
+              "ark.gc.gc-time": 520
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 4,
+          "elapsed_us": 171214794,
+          "pid": 52671,
+          "operations": 14000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 209957,
+            "rss_kb": 303068,
+            "native_allocated_bytes": 146030064,
+            "native_free_bytes": 15647456,
+            "native_heap_bytes": 161677456,
+            "ark_heap_used_kb": 9898,
+            "ark_heap_capacity_kb": 15104,
+            "ark_arrays_kb": 1095,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 207187176,
+              "ark.gc.gc-bytes-freed": 195827944,
+              "ark.gc.gc-count": 37,
+              "ark.gc.gc-time": 571
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 5,
+          "elapsed_us": 191387644,
+          "pid": 52671,
+          "operations": 17500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 254107,
+            "rss_kb": 347212,
+            "native_allocated_bytes": 181611680,
+            "native_free_bytes": 4507560,
+            "native_heap_bytes": 186119176,
+            "ark_heap_used_kb": 18030,
+            "ark_heap_capacity_kb": 22272,
+            "ark_arrays_kb": 2403,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 254367528,
+              "ark.gc.gc-bytes-freed": 233163120,
+              "ark.gc.gc-count": 44,
+              "ark.gc.gc-time": 684
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 5,
+          "elapsed_us": 211456827,
+          "pid": 52671,
+          "operations": 17500,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 221279,
+            "rss_kb": 314384,
+            "native_allocated_bytes": 174354448,
+            "native_free_bytes": 4442416,
+            "native_heap_bytes": 178796800,
+            "ark_heap_used_kb": 18047,
+            "ark_heap_capacity_kb": 22272,
+            "ark_arrays_kb": 2405,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 254373064,
+              "ark.gc.gc-bytes-freed": 233163120,
+              "ark.gc.gc-count": 44,
+              "ark.gc.gc-time": 684
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "load",
+          "cycle": 6,
+          "elapsed_us": 231647330,
+          "pid": 52671,
+          "operations": 21000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 266451,
+            "rss_kb": 359556,
+            "native_allocated_bytes": 188788016,
+            "native_free_bytes": 4077240,
+            "native_heap_bytes": 192940040,
+            "ark_heap_used_kb": 15531,
+            "ark_heap_capacity_kb": 20480,
+            "ark_arrays_kb": 2265,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 301896184,
+              "ark.gc.gc-bytes-freed": 281407024,
+              "ark.gc.gc-count": 52,
+              "ark.gc.gc-time": 823
+            }
+          },
+          "checkpoint": "load_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "recovery",
+          "cycle": 6,
+          "elapsed_us": 251696059,
+          "pid": 52671,
+          "operations": 21000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 234000,
+            "rss_kb": 327072,
+            "native_allocated_bytes": 188900304,
+            "native_free_bytes": 4072720,
+            "native_heap_bytes": 192972960,
+            "ark_heap_used_kb": 15547,
+            "ark_heap_capacity_kb": 20480,
+            "ark_arrays_kb": 2267,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 0,
+              "ark.gc.gc-bytes-allocated": 301901720,
+              "ark.gc.gc-bytes-freed": 281407024,
+              "ark.gc.gc-count": 52,
+              "ark.gc.gc-time": 823
+            }
+          },
+          "checkpoint": "recovery_end"
+        },
+        {
+          "case": "echo_large_bytes",
+          "phase": "complete",
+          "cycle": 6,
+          "elapsed_us": 271769457,
+          "pid": 52671,
+          "operations": 21000,
+          "errors": 0,
+          "finished": false,
+          "failure": null,
+          "native": {
+            "pss_kb": 225803,
+            "rss_kb": 319076,
+            "native_allocated_bytes": 178455232,
+            "native_free_bytes": 12218368,
+            "native_heap_bytes": 190673632,
+            "ark_heap_used_kb": 10719,
+            "ark_heap_capacity_kb": 15872,
+            "ark_arrays_kb": 1642,
+            "ark_gc": {
+              "ark.gc.fullgc-longtime-count": 1,
+              "ark.gc.gc-bytes-allocated": 301916544,
+              "ark.gc.gc-bytes-freed": 289716664,
+              "ark.gc.gc-count": 54,
+              "ark.gc.gc-time": 895
+            }
+          },
+          "checkpoint": "complete"
+        }
+      ],
+      "dart": {
+        "type": "MemoryUsage",
+        "heapUsage": 12566528,
+        "heapCapacity": 22159360,
+        "externalUsage": 1098880
+      }
+    }
+  ],
+  "vm_service": "http://127.0.0.1:53927/",
+  "before_start": {
+    "host_utc": "2026-09-15T06:36:38.299Z",
+    "sample_rpc_ms": 45,
+    "case": "echo_large_bytes",
+    "phase": "ready",
+    "cycle": 0,
+    "elapsed_us": 0,
+    "pid": 52671,
+    "operations": 0,
+    "errors": 0,
+    "finished": false,
+    "failure": null,
+    "native": {
+      "pss_kb": 77373,
+      "rss_kb": 167072,
+      "native_allocated_bytes": 64679656,
+      "native_free_bytes": 9526888,
+      "native_heap_bytes": 74206064,
+      "ark_heap_used_kb": 4026,
+      "ark_heap_capacity_kb": 11776,
+      "ark_arrays_kb": 2,
+      "ark_gc": {
+        "ark.gc.fullgc-longtime-count": 0,
+        "ark.gc.gc-bytes-allocated": 18124656,
+        "ark.gc.gc-bytes-freed": 7110480,
+        "ark.gc.gc-count": 3,
+        "ark.gc.gc-time": 68
+      }
+    },
+    "config": {
+      "cycles": 6,
+      "operations_per_cycle": 3500,
+      "checkpoints": true
+    },
+    "checkpoints": [],
+    "dart": {
+      "type": "MemoryUsage",
+      "heapUsage": 7073328,
+      "heapCapacity": 13770752,
+      "externalUsage": 544
+    }
+  },
+  "checkpoints": [
+    {
+      "case": "echo_large_bytes",
+      "phase": "baseline",
+      "cycle": 0,
+      "elapsed_us": 10060484,
+      "pid": 52671,
+      "operations": 0,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 79895,
+        "rss_kb": 170072,
+        "native_allocated_bytes": 65980456,
+        "native_free_bytes": 4377672,
+        "native_heap_bytes": 70358064,
+        "ark_heap_used_kb": 4054,
+        "ark_heap_capacity_kb": 11776,
+        "ark_arrays_kb": 3,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 18130920,
+          "ark.gc.gc-bytes-freed": 7110480,
+          "ark.gc.gc-count": 3,
+          "ark.gc.gc-time": 68
+        }
+      },
+      "checkpoint": "baseline"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 1,
+      "elapsed_us": 30305072,
+      "pid": 52671,
+      "operations": 3500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 176128,
+        "rss_kb": 269176,
+        "native_allocated_bytes": 89208024,
+        "native_free_bytes": 11897976,
+        "native_heap_bytes": 101105936,
+        "ark_heap_used_kb": 10179,
+        "ark_heap_capacity_kb": 15872,
+        "ark_arrays_kb": 490,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 65428960,
+          "ark.gc.gc-bytes-freed": 52261128,
+          "ark.gc.gc-count": 11,
+          "ark.gc.gc-time": 152
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 1,
+      "elapsed_us": 50364739,
+      "pid": 52671,
+      "operations": 3500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 127423,
+        "rss_kb": 220936,
+        "native_allocated_bytes": 87023352,
+        "native_free_bytes": 6449752,
+        "native_heap_bytes": 93473040,
+        "ark_heap_used_kb": 8670,
+        "ark_heap_capacity_kb": 13568,
+        "ark_arrays_kb": 274,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 65443656,
+          "ark.gc.gc-bytes-freed": 55341688,
+          "ark.gc.gc-count": 13,
+          "ark.gc.gc-time": 194
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 2,
+      "elapsed_us": 70552764,
+      "pid": 52671,
+      "operations": 7000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 200152,
+        "rss_kb": 293612,
+        "native_allocated_bytes": 125919464,
+        "native_free_bytes": 4087416,
+        "native_heap_bytes": 130006816,
+        "ark_heap_used_kb": 19336,
+        "ark_heap_capacity_kb": 23040,
+        "ark_arrays_kb": 1941,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 112676312,
+          "ark.gc.gc-bytes-freed": 90016480,
+          "ark.gc.gc-count": 19,
+          "ark.gc.gc-time": 260
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 2,
+      "elapsed_us": 90610118,
+      "pid": 52671,
+      "operations": 7000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 172185,
+        "rss_kb": 265804,
+        "native_allocated_bytes": 126458448,
+        "native_free_bytes": 4703688,
+        "native_heap_bytes": 131162136,
+        "ark_heap_used_kb": 12228,
+        "ark_heap_capacity_kb": 15872,
+        "ark_arrays_kb": 620,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 112681848,
+          "ark.gc.gc-bytes-freed": 97201248,
+          "ark.gc.gc-count": 20,
+          "ark.gc.gc-time": 271
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 3,
+      "elapsed_us": 110908069,
+      "pid": 52671,
+      "operations": 10500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 224399,
+        "rss_kb": 317700,
+        "native_allocated_bytes": 127279432,
+        "native_free_bytes": 19741424,
+        "native_heap_bytes": 147020792,
+        "ark_heap_used_kb": 10141,
+        "ark_heap_capacity_kb": 16640,
+        "ark_arrays_kb": 917,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 159752160,
+          "ark.gc.gc-bytes-freed": 144830688,
+          "ark.gc.gc-count": 28,
+          "ark.gc.gc-time": 408
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 3,
+      "elapsed_us": 130955837,
+      "pid": 52671,
+      "operations": 10500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 190351,
+        "rss_kb": 283464,
+        "native_allocated_bytes": 127383104,
+        "native_free_bytes": 4088560,
+        "native_heap_bytes": 131471600,
+        "ark_heap_used_kb": 10158,
+        "ark_heap_capacity_kb": 16640,
+        "ark_arrays_kb": 919,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 159757696,
+          "ark.gc.gc-bytes-freed": 144830688,
+          "ark.gc.gc-count": 28,
+          "ark.gc.gc-time": 408
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 4,
+      "elapsed_us": 151158310,
+      "pid": 52671,
+      "operations": 14000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 239657,
+        "rss_kb": 332768,
+        "native_allocated_bytes": 162436904,
+        "native_free_bytes": 4004648,
+        "native_heap_bytes": 166441488,
+        "ark_heap_used_kb": 18136,
+        "ark_heap_capacity_kb": 22272,
+        "ark_arrays_kb": 2203,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 207172480,
+          "ark.gc.gc-bytes-freed": 182376992,
+          "ark.gc.gc-count": 35,
+          "ark.gc.gc-time": 520
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 4,
+      "elapsed_us": 171214794,
+      "pid": 52671,
+      "operations": 14000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 209957,
+        "rss_kb": 303068,
+        "native_allocated_bytes": 146030064,
+        "native_free_bytes": 15647456,
+        "native_heap_bytes": 161677456,
+        "ark_heap_used_kb": 9898,
+        "ark_heap_capacity_kb": 15104,
+        "ark_arrays_kb": 1095,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 207187176,
+          "ark.gc.gc-bytes-freed": 195827944,
+          "ark.gc.gc-count": 37,
+          "ark.gc.gc-time": 571
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 5,
+      "elapsed_us": 191387644,
+      "pid": 52671,
+      "operations": 17500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 254107,
+        "rss_kb": 347212,
+        "native_allocated_bytes": 181611680,
+        "native_free_bytes": 4507560,
+        "native_heap_bytes": 186119176,
+        "ark_heap_used_kb": 18030,
+        "ark_heap_capacity_kb": 22272,
+        "ark_arrays_kb": 2403,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 254367528,
+          "ark.gc.gc-bytes-freed": 233163120,
+          "ark.gc.gc-count": 44,
+          "ark.gc.gc-time": 684
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 5,
+      "elapsed_us": 211456827,
+      "pid": 52671,
+      "operations": 17500,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 221279,
+        "rss_kb": 314384,
+        "native_allocated_bytes": 174354448,
+        "native_free_bytes": 4442416,
+        "native_heap_bytes": 178796800,
+        "ark_heap_used_kb": 18047,
+        "ark_heap_capacity_kb": 22272,
+        "ark_arrays_kb": 2405,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 254373064,
+          "ark.gc.gc-bytes-freed": 233163120,
+          "ark.gc.gc-count": 44,
+          "ark.gc.gc-time": 684
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "load",
+      "cycle": 6,
+      "elapsed_us": 231647330,
+      "pid": 52671,
+      "operations": 21000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 266451,
+        "rss_kb": 359556,
+        "native_allocated_bytes": 188788016,
+        "native_free_bytes": 4077240,
+        "native_heap_bytes": 192940040,
+        "ark_heap_used_kb": 15531,
+        "ark_heap_capacity_kb": 20480,
+        "ark_arrays_kb": 2265,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 301896184,
+          "ark.gc.gc-bytes-freed": 281407024,
+          "ark.gc.gc-count": 52,
+          "ark.gc.gc-time": 823
+        }
+      },
+      "checkpoint": "load_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "recovery",
+      "cycle": 6,
+      "elapsed_us": 251696059,
+      "pid": 52671,
+      "operations": 21000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 234000,
+        "rss_kb": 327072,
+        "native_allocated_bytes": 188900304,
+        "native_free_bytes": 4072720,
+        "native_heap_bytes": 192972960,
+        "ark_heap_used_kb": 15547,
+        "ark_heap_capacity_kb": 20480,
+        "ark_arrays_kb": 2267,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 0,
+          "ark.gc.gc-bytes-allocated": 301901720,
+          "ark.gc.gc-bytes-freed": 281407024,
+          "ark.gc.gc-count": 52,
+          "ark.gc.gc-time": 823
+        }
+      },
+      "checkpoint": "recovery_end"
+    },
+    {
+      "case": "echo_large_bytes",
+      "phase": "complete",
+      "cycle": 6,
+      "elapsed_us": 271769457,
+      "pid": 52671,
+      "operations": 21000,
+      "errors": 0,
+      "finished": false,
+      "failure": null,
+      "native": {
+        "pss_kb": 225803,
+        "rss_kb": 319076,
+        "native_allocated_bytes": 178455232,
+        "native_free_bytes": 12218368,
+        "native_heap_bytes": 190673632,
+        "ark_heap_used_kb": 10719,
+        "ark_heap_capacity_kb": 15872,
+        "ark_arrays_kb": 1642,
+        "ark_gc": {
+          "ark.gc.fullgc-longtime-count": 1,
+          "ark.gc.gc-bytes-allocated": 301916544,
+          "ark.gc.gc-bytes-freed": 289716664,
+          "ark.gc.gc-count": 54,
+          "ark.gc.gc-time": 895
+        }
+      },
+      "checkpoint": "complete"
+    }
+  ],
+  "post_dart_gc": {
+    "host_utc": "2026-09-15T06:41:14.722Z",
+    "sample_rpc_ms": 1901,
+    "case": "echo_large_bytes",
+    "phase": "complete",
+    "cycle": 6,
+    "elapsed_us": 276398083,
+    "pid": 52671,
+    "operations": 21000,
+    "errors": 0,
+    "finished": true,
+    "failure": null,
+    "native": {
+      "pss_kb": 225888,
+      "rss_kb": 318976,
+      "native_allocated_bytes": 180372128,
+      "native_free_bytes": 7594112,
+      "native_heap_bytes": 187974368,
+      "ark_heap_used_kb": 10752,
+      "ark_heap_capacity_kb": 15872,
+      "ark_arrays_kb": 1645,
+      "ark_gc": {
+        "ark.gc.fullgc-longtime-count": 1,
+        "ark.gc.gc-bytes-allocated": 301927264,
+        "ark.gc.gc-bytes-freed": 289716664,
+        "ark.gc.gc-count": 54,
+        "ark.gc.gc-time": 895
+      }
+    },
+    "config": {
+      "cycles": 6,
+      "operations_per_cycle": 3500,
+      "checkpoints": true
+    },
+    "checkpoints": [
+      {
+        "case": "echo_large_bytes",
+        "phase": "baseline",
+        "cycle": 0,
+        "elapsed_us": 10060484,
+        "pid": 52671,
+        "operations": 0,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 79895,
+          "rss_kb": 170072,
+          "native_allocated_bytes": 65980456,
+          "native_free_bytes": 4377672,
+          "native_heap_bytes": 70358064,
+          "ark_heap_used_kb": 4054,
+          "ark_heap_capacity_kb": 11776,
+          "ark_arrays_kb": 3,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 18130920,
+            "ark.gc.gc-bytes-freed": 7110480,
+            "ark.gc.gc-count": 3,
+            "ark.gc.gc-time": 68
+          }
+        },
+        "checkpoint": "baseline"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 1,
+        "elapsed_us": 30305072,
+        "pid": 52671,
+        "operations": 3500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 176128,
+          "rss_kb": 269176,
+          "native_allocated_bytes": 89208024,
+          "native_free_bytes": 11897976,
+          "native_heap_bytes": 101105936,
+          "ark_heap_used_kb": 10179,
+          "ark_heap_capacity_kb": 15872,
+          "ark_arrays_kb": 490,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 65428960,
+            "ark.gc.gc-bytes-freed": 52261128,
+            "ark.gc.gc-count": 11,
+            "ark.gc.gc-time": 152
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 1,
+        "elapsed_us": 50364739,
+        "pid": 52671,
+        "operations": 3500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 127423,
+          "rss_kb": 220936,
+          "native_allocated_bytes": 87023352,
+          "native_free_bytes": 6449752,
+          "native_heap_bytes": 93473040,
+          "ark_heap_used_kb": 8670,
+          "ark_heap_capacity_kb": 13568,
+          "ark_arrays_kb": 274,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 65443656,
+            "ark.gc.gc-bytes-freed": 55341688,
+            "ark.gc.gc-count": 13,
+            "ark.gc.gc-time": 194
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 2,
+        "elapsed_us": 70552764,
+        "pid": 52671,
+        "operations": 7000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 200152,
+          "rss_kb": 293612,
+          "native_allocated_bytes": 125919464,
+          "native_free_bytes": 4087416,
+          "native_heap_bytes": 130006816,
+          "ark_heap_used_kb": 19336,
+          "ark_heap_capacity_kb": 23040,
+          "ark_arrays_kb": 1941,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 112676312,
+            "ark.gc.gc-bytes-freed": 90016480,
+            "ark.gc.gc-count": 19,
+            "ark.gc.gc-time": 260
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 2,
+        "elapsed_us": 90610118,
+        "pid": 52671,
+        "operations": 7000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 172185,
+          "rss_kb": 265804,
+          "native_allocated_bytes": 126458448,
+          "native_free_bytes": 4703688,
+          "native_heap_bytes": 131162136,
+          "ark_heap_used_kb": 12228,
+          "ark_heap_capacity_kb": 15872,
+          "ark_arrays_kb": 620,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 112681848,
+            "ark.gc.gc-bytes-freed": 97201248,
+            "ark.gc.gc-count": 20,
+            "ark.gc.gc-time": 271
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 3,
+        "elapsed_us": 110908069,
+        "pid": 52671,
+        "operations": 10500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 224399,
+          "rss_kb": 317700,
+          "native_allocated_bytes": 127279432,
+          "native_free_bytes": 19741424,
+          "native_heap_bytes": 147020792,
+          "ark_heap_used_kb": 10141,
+          "ark_heap_capacity_kb": 16640,
+          "ark_arrays_kb": 917,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 159752160,
+            "ark.gc.gc-bytes-freed": 144830688,
+            "ark.gc.gc-count": 28,
+            "ark.gc.gc-time": 408
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 3,
+        "elapsed_us": 130955837,
+        "pid": 52671,
+        "operations": 10500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 190351,
+          "rss_kb": 283464,
+          "native_allocated_bytes": 127383104,
+          "native_free_bytes": 4088560,
+          "native_heap_bytes": 131471600,
+          "ark_heap_used_kb": 10158,
+          "ark_heap_capacity_kb": 16640,
+          "ark_arrays_kb": 919,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 159757696,
+            "ark.gc.gc-bytes-freed": 144830688,
+            "ark.gc.gc-count": 28,
+            "ark.gc.gc-time": 408
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 4,
+        "elapsed_us": 151158310,
+        "pid": 52671,
+        "operations": 14000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 239657,
+          "rss_kb": 332768,
+          "native_allocated_bytes": 162436904,
+          "native_free_bytes": 4004648,
+          "native_heap_bytes": 166441488,
+          "ark_heap_used_kb": 18136,
+          "ark_heap_capacity_kb": 22272,
+          "ark_arrays_kb": 2203,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 207172480,
+            "ark.gc.gc-bytes-freed": 182376992,
+            "ark.gc.gc-count": 35,
+            "ark.gc.gc-time": 520
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 4,
+        "elapsed_us": 171214794,
+        "pid": 52671,
+        "operations": 14000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 209957,
+          "rss_kb": 303068,
+          "native_allocated_bytes": 146030064,
+          "native_free_bytes": 15647456,
+          "native_heap_bytes": 161677456,
+          "ark_heap_used_kb": 9898,
+          "ark_heap_capacity_kb": 15104,
+          "ark_arrays_kb": 1095,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 207187176,
+            "ark.gc.gc-bytes-freed": 195827944,
+            "ark.gc.gc-count": 37,
+            "ark.gc.gc-time": 571
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 5,
+        "elapsed_us": 191387644,
+        "pid": 52671,
+        "operations": 17500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 254107,
+          "rss_kb": 347212,
+          "native_allocated_bytes": 181611680,
+          "native_free_bytes": 4507560,
+          "native_heap_bytes": 186119176,
+          "ark_heap_used_kb": 18030,
+          "ark_heap_capacity_kb": 22272,
+          "ark_arrays_kb": 2403,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 254367528,
+            "ark.gc.gc-bytes-freed": 233163120,
+            "ark.gc.gc-count": 44,
+            "ark.gc.gc-time": 684
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 5,
+        "elapsed_us": 211456827,
+        "pid": 52671,
+        "operations": 17500,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 221279,
+          "rss_kb": 314384,
+          "native_allocated_bytes": 174354448,
+          "native_free_bytes": 4442416,
+          "native_heap_bytes": 178796800,
+          "ark_heap_used_kb": 18047,
+          "ark_heap_capacity_kb": 22272,
+          "ark_arrays_kb": 2405,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 254373064,
+            "ark.gc.gc-bytes-freed": 233163120,
+            "ark.gc.gc-count": 44,
+            "ark.gc.gc-time": 684
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "load",
+        "cycle": 6,
+        "elapsed_us": 231647330,
+        "pid": 52671,
+        "operations": 21000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 266451,
+          "rss_kb": 359556,
+          "native_allocated_bytes": 188788016,
+          "native_free_bytes": 4077240,
+          "native_heap_bytes": 192940040,
+          "ark_heap_used_kb": 15531,
+          "ark_heap_capacity_kb": 20480,
+          "ark_arrays_kb": 2265,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 301896184,
+            "ark.gc.gc-bytes-freed": 281407024,
+            "ark.gc.gc-count": 52,
+            "ark.gc.gc-time": 823
+          }
+        },
+        "checkpoint": "load_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "recovery",
+        "cycle": 6,
+        "elapsed_us": 251696059,
+        "pid": 52671,
+        "operations": 21000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 234000,
+          "rss_kb": 327072,
+          "native_allocated_bytes": 188900304,
+          "native_free_bytes": 4072720,
+          "native_heap_bytes": 192972960,
+          "ark_heap_used_kb": 15547,
+          "ark_heap_capacity_kb": 20480,
+          "ark_arrays_kb": 2267,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 0,
+            "ark.gc.gc-bytes-allocated": 301901720,
+            "ark.gc.gc-bytes-freed": 281407024,
+            "ark.gc.gc-count": 52,
+            "ark.gc.gc-time": 823
+          }
+        },
+        "checkpoint": "recovery_end"
+      },
+      {
+        "case": "echo_large_bytes",
+        "phase": "complete",
+        "cycle": 6,
+        "elapsed_us": 271769457,
+        "pid": 52671,
+        "operations": 21000,
+        "errors": 0,
+        "finished": false,
+        "failure": null,
+        "native": {
+          "pss_kb": 225803,
+          "rss_kb": 319076,
+          "native_allocated_bytes": 178455232,
+          "native_free_bytes": 12218368,
+          "native_heap_bytes": 190673632,
+          "ark_heap_used_kb": 10719,
+          "ark_heap_capacity_kb": 15872,
+          "ark_arrays_kb": 1642,
+          "ark_gc": {
+            "ark.gc.fullgc-longtime-count": 1,
+            "ark.gc.gc-bytes-allocated": 301916544,
+            "ark.gc.gc-bytes-freed": 289716664,
+            "ark.gc.gc-count": 54,
+            "ark.gc.gc-time": 895
+          }
+        },
+        "checkpoint": "complete"
+      }
+    ],
+    "dart": {
+      "type": "MemoryUsage",
+      "heapUsage": 6274592,
+      "heapCapacity": 21442560,
+      "externalUsage": 448
+    }
+  },
+  "host_finished_utc": "2026-09-15T06:41:14.722Z"
+}

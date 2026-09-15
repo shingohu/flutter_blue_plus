@@ -1,0 +1,66 @@
+{
+  "case": "echo_large_bytes",
+  "config": {
+    "sampling": "endpoints",
+    "cycles": 2,
+    "operations_per_cycle": 3500,
+    "checkpoints": true
+  },
+  "host_started_utc": "2026-09-15T07:53:24.331Z",
+  "samples": [],
+  "vm_service": "http://127.0.0.1:52647/",
+  "before_start": {
+    "host_utc": "2026-09-15T07:53:37.533Z",
+    "sample_rpc_ms": 45,
+    "case": "echo_large_bytes",
+    "phase": "ready",
+    "cycle": 0,
+    "elapsed_us": 0,
+    "pid": 38424,
+    "operations": 0,
+    "errors": 0,
+    "finished": false,
+    "failure": null,
+    "native": {
+      "pss_kb": 77477,
+      "rss_kb": 165840,
+      "native_allocated_bytes": 64802136,
+      "native_free_bytes": 9333896,
+      "native_heap_bytes": 74231520,
+      "ark_heap_used_kb": 4026,
+      "ark_heap_capacity_kb": 11776,
+      "ark_arrays_kb": 2,
+      "ark_gc": {
+        "ark.gc.fullgc-longtime-count": 0,
+        "ark.gc.gc-bytes-allocated": 18124656,
+        "ark.gc.gc-bytes-freed": 7110480,
+        "ark.gc.gc-count": 3,
+        "ark.gc.gc-time": 68
+      }
+    },
+    "config": {
+      "cycles": 2,
+      "operations_per_cycle": 3500,
+      "checkpoints": true
+    },
+    "checkpoints": [],
+    "dart": {
+      "type": "MemoryUsage",
+      "heapUsage": 7073328,
+      "heapCapacity": 13770752,
+      "externalUsage": 544
+    }
+  },
+  "native_trace": {
+    "device_path": "/data/local/tmp/fbp_native_38424_1789458817533.htrace",
+    "config_path": "/data/local/tmp/fbp_native_38424_1789458817533.pbtxt",
+    "upload_output": "FileTransfer finish, Size:553, File count = 1, time:10ms rate:55.30kB/s\r\n",
+    "stop_output": "Stopping profiling session 0...\nStopSession done!\nDestroySession done!\nAll sessions stopped successfully\nProfiling session stopped successfully\n",
+    "stopped_utc": "2026-09-15T07:54:38.112Z",
+    "export_output": "FileTransfer finish, Size:39740223, File count = 1, time:1452ms rate:27369.30kB/s\n",
+    "bytes": 39740223
+  },
+  "failure": "Error: Command failed: /Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/toolchains/hdc -t 23E0224126000860 shell hiprofiler_cmd start --nonblock -s -c /data/local/tmp/fbp_native_38424_1789458817533.pbtxt -o /data/local/tmp/fbp_native_38424_1789458817533.htrace\n",
+  "flutter_exited_before_cleanup": false,
+  "host_failed_utc": "2026-09-15T07:54:37.578Z"
+}
