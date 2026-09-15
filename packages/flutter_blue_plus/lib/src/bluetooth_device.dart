@@ -220,8 +220,7 @@ class BluetoothDevice {
       FlutterBluePlus._autoConnect.remove(remoteId);
 
       var responseStream = FlutterBluePlusPlatform.instance.onConnectionStateChanged
-          .where((p) => p.remoteId == remoteId)
-          .where((p) => p.connectionState == BmConnectionStateEnum.disconnected);
+          .where((p) => p.remoteId == remoteId && p.connectionState == BmConnectionStateEnum.disconnected);
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmConnectionStateResponse> futureState = responseStream.first;
@@ -551,8 +550,7 @@ class BluetoothDevice {
 
     try {
       var responseStream = FlutterBluePlusPlatform.instance.onBondStateChanged
-          .where((p) => p.remoteId == remoteId)
-          .where((p) => p.bondState != BmBondStateEnum.bonding);
+          .where((p) => p.remoteId == remoteId && p.bondState != BmBondStateEnum.bonding);
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmBondStateResponse> futureResponse = responseStream.first;
@@ -592,8 +590,7 @@ class BluetoothDevice {
 
     try {
       var responseStream = FlutterBluePlusPlatform.instance.onBondStateChanged
-          .where((p) => p.remoteId == remoteId)
-          .where((p) => p.bondState != BmBondStateEnum.bonding);
+          .where((p) => p.remoteId == remoteId && p.bondState != BmBondStateEnum.bonding);
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmBondStateResponse> futureResponse = responseStream.first;
@@ -735,4 +732,3 @@ class BluetoothDevice {
   @Deprecated('Use fromId instead')
   BluetoothDevice.fromProto(BmBluetoothDevice p) : remoteId = p.remoteId;
 }
-

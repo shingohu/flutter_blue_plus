@@ -74,26 +74,28 @@ class BluetoothDescriptor {
   ///   - and when first listened to, it re-emits the last value for convenience
   Stream<List<int>> get lastValueStream => _mergeStreams(
           [FlutterBluePlusPlatform.instance.onDescriptorRead, FlutterBluePlusPlatform.instance.onDescriptorWritten])
-      .where((p) => p.remoteId == remoteId)
-      .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-      .where((p) => p.serviceUuid == serviceUuid)
-      .where((p) => p.characteristicUuid == characteristicUuid)
-      .where((p) => p.instanceId == instanceId)
-      .where((p) => p.descriptorUuid == descriptorUuid)
-      .where((p) => p.success == true)
+      .where((p) =>
+          p.remoteId == remoteId &&
+          p.primaryServiceUuid == primaryServiceUuid &&
+          p.serviceUuid == serviceUuid &&
+          p.characteristicUuid == characteristicUuid &&
+          p.instanceId == instanceId &&
+          p.descriptorUuid == descriptorUuid &&
+          p.success == true)
       .map((p) => p.value)
       .newStreamWithInitialValue(lastValue);
 
   /// this stream emits values:
   ///   - anytime `read()` is called
   Stream<List<int>> get onValueReceived => FlutterBluePlusPlatform.instance.onDescriptorRead
-      .where((p) => p.remoteId == remoteId)
-      .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-      .where((p) => p.serviceUuid == serviceUuid)
-      .where((p) => p.characteristicUuid == characteristicUuid)
-      .where((p) => p.instanceId == instanceId)
-      .where((p) => p.descriptorUuid == descriptorUuid)
-      .where((p) => p.success == true)
+      .where((p) =>
+          p.remoteId == remoteId &&
+          p.primaryServiceUuid == primaryServiceUuid &&
+          p.serviceUuid == serviceUuid &&
+          p.characteristicUuid == characteristicUuid &&
+          p.instanceId == instanceId &&
+          p.descriptorUuid == descriptorUuid &&
+          p.success == true)
       .map((p) => p.value);
 
   /// Retrieves the value of a specified descriptor
@@ -124,12 +126,13 @@ class BluetoothDescriptor {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmDescriptorData> futureResponse =
           (_cachedOnReadStream ??= FlutterBluePlusPlatform.instance.onDescriptorRead
-              .where((p) => p.remoteId == remoteId)
-              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-              .where((p) => p.serviceUuid == serviceUuid)
-              .where((p) => p.characteristicUuid == characteristicUuid)
-              .where((p) => p.instanceId == instanceId)
-              .where((p) => p.descriptorUuid == descriptorUuid))
+              .where((p) =>
+                  p.remoteId == remoteId &&
+                  p.primaryServiceUuid == primaryServiceUuid &&
+                  p.serviceUuid == serviceUuid &&
+                  p.characteristicUuid == characteristicUuid &&
+                  p.instanceId == instanceId &&
+                  p.descriptorUuid == descriptorUuid))
           .first;
 
       // invoke
@@ -180,12 +183,13 @@ class BluetoothDescriptor {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmDescriptorData> futureResponse =
           (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
-              .where((p) => p.remoteId == remoteId)
-              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-              .where((p) => p.serviceUuid == serviceUuid)
-              .where((p) => p.characteristicUuid == characteristicUuid)
-              .where((p) => p.instanceId == instanceId)
-              .where((p) => p.descriptorUuid == descriptorUuid))
+              .where((p) =>
+                  p.remoteId == remoteId &&
+                  p.primaryServiceUuid == primaryServiceUuid &&
+                  p.serviceUuid == serviceUuid &&
+                  p.characteristicUuid == characteristicUuid &&
+                  p.instanceId == instanceId &&
+                  p.descriptorUuid == descriptorUuid))
           .first;
 
       // invoke

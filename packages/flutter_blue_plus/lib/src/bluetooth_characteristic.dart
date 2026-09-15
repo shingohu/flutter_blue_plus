@@ -89,12 +89,13 @@ class BluetoothCharacteristic {
         FlutterBluePlusPlatform.instance.onCharacteristicReceived,
         FlutterBluePlusPlatform.instance.onCharacteristicWritten
       ])
-          .where((p) => p.remoteId == remoteId)
-          .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-          .where((p) => p.serviceUuid == serviceUuid)
-          .where((p) => p.characteristicUuid == characteristicUuid)
-          .where((p) => p.instanceId == instanceId)
-          .where((p) => p.success == true)
+          .where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.instanceId == instanceId &&
+              p.success == true)
           .map((c) => c.value)
           .newStreamWithInitialValue(lastValue);
 
@@ -102,12 +103,13 @@ class BluetoothCharacteristic {
   ///   - anytime `read()` is called
   ///   - anytime a notification arrives (if subscribed)
   Stream<List<int>> get onValueReceived => FlutterBluePlusPlatform.instance.onCharacteristicReceived
-      .where((p) => p.remoteId == remoteId)
-      .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-      .where((p) => p.serviceUuid == serviceUuid)
-      .where((p) => p.characteristicUuid == characteristicUuid)
-      .where((p) => p.instanceId == instanceId)
-      .where((p) => p.success == true)
+      .where((p) =>
+          p.remoteId == remoteId &&
+          p.primaryServiceUuid == primaryServiceUuid &&
+          p.serviceUuid == serviceUuid &&
+          p.characteristicUuid == characteristicUuid &&
+          p.instanceId == instanceId &&
+          p.success == true)
       .map((c) => c.value);
 
   /// return true if we're subscribed to this characteristic
@@ -151,11 +153,12 @@ class BluetoothCharacteristic {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmCharacteristicData> futureResponse =
           (_cachedOnReceivedStream ??= FlutterBluePlusPlatform.instance.onCharacteristicReceived
-              .where((p) => p.remoteId == remoteId)
-              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-              .where((p) => p.serviceUuid == serviceUuid)
-              .where((p) => p.characteristicUuid == characteristicUuid)
-              .where((p) => p.instanceId == instanceId))
+              .where((p) =>
+                  p.remoteId == remoteId &&
+                  p.primaryServiceUuid == primaryServiceUuid &&
+                  p.serviceUuid == serviceUuid &&
+                  p.characteristicUuid == characteristicUuid &&
+                  p.instanceId == instanceId))
           .first;
 
       // invoke
@@ -227,11 +230,12 @@ class BluetoothCharacteristic {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmCharacteristicData> futureResponse =
           (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onCharacteristicWritten
-              .where((p) => p.remoteId == remoteId)
-              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-              .where((p) => p.serviceUuid == serviceUuid)
-              .where((p) => p.characteristicUuid == characteristicUuid)
-              .where((p) => p.instanceId == instanceId))
+              .where((p) =>
+                  p.remoteId == remoteId &&
+                  p.primaryServiceUuid == primaryServiceUuid &&
+                  p.serviceUuid == serviceUuid &&
+                  p.characteristicUuid == characteristicUuid &&
+                  p.instanceId == instanceId))
           .first;
 
       // invoke
@@ -293,12 +297,13 @@ class BluetoothCharacteristic {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
       Future<BmDescriptorData> futureResponse =
           (_cachedOnDescriptorWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
-              .where((p) => p.remoteId == remoteId)
-              .where((p) => p.primaryServiceUuid == primaryServiceUuid)
-              .where((p) => p.serviceUuid == serviceUuid)
-              .where((p) => p.characteristicUuid == characteristicUuid)
-              .where((p) => p.descriptorUuid == cccdUuid)
-              .where((p) => p.instanceId == instanceId))
+              .where((p) =>
+                  p.remoteId == remoteId &&
+                  p.primaryServiceUuid == primaryServiceUuid &&
+                  p.serviceUuid == serviceUuid &&
+                  p.characteristicUuid == characteristicUuid &&
+                  p.descriptorUuid == cccdUuid &&
+                  p.instanceId == instanceId))
           .first;
 
       // invoke
