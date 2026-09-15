@@ -624,46 +624,6 @@ class FlutterBluePlus {
     return await invoke();
   }
 
-  /// Turn off Bluetooth (Android only),
-  @Deprecated('Deprecated in Android SDK 33 with no replacement')
-  static Future<void> turnOff({Duration timeout = const Duration(seconds: 10)}) async {
-    var responseStream =
-        FlutterBluePlusPlatform.instance.onAdapterStateChanged.where((p) => p.adapterState == BmAdapterStateEnum.off);
-
-    // Start listening now, before invokeMethod, to ensure we don't miss the response
-    Future<BmBluetoothAdapterState> futureResponse = responseStream.first;
-
-    // invoke
-    bool changed = await _invokePlatform(() => FlutterBluePlusPlatform.instance.turnOff(BmTurnOffRequest()));
-
-    // only wait if bluetooth was on
-    if (changed) {
-      await futureResponse.fbpTimeout(timeout, "turnOff");
-    }
-  }
-
-  /// Checks if Bluetooth functionality is turned on
-  @Deprecated('Use adapterState.first == BluetoothAdapterState.on instead')
-  static Future<bool> get isOn async => await adapterState.first == BluetoothAdapterState.on;
-
-  @Deprecated('Use adapterName instead')
-  static Future<String> get name => adapterName;
-
-  @Deprecated('Use adapterState instead')
-  static Stream<BluetoothAdapterState> get state => adapterState;
-
-  @Deprecated('Use systemDevices instead')
-  static Future<List<BluetoothDevice>> get connectedSystemDevices => systemDevices([Guid("1800")]);
-
-  @Deprecated('No longer needed, remove this from your code')
-  // ignore: avoid_returning_null_for_void
-  static void get instance => null;
-
-  @Deprecated('Use isSupported instead')
-  static Future<bool> get isAvailable async => await isSupported;
-
-  @Deprecated('removed. read MIGRATION.md for simple alternatives')
-  static Stream<ScanResult> scan() => throw Exception;
 }
 
 enum OperationQueueMode {
@@ -820,8 +780,6 @@ class AdvertisementData {
         '}';
   }
 
-  @Deprecated('use advName instead')
-  String get localName => advName;
 }
 
 enum ErrorPlatform {
@@ -882,12 +840,4 @@ class FlutterBluePlusException implements Exception {
     return 'FlutterBluePlusException | $function | $sPlatform-code: $code | $description';
   }
 
-  @Deprecated('Use function instead')
-  String get errorName => function;
-
-  @Deprecated('Use code instead')
-  int? get errorCode => code;
-
-  @Deprecated('Use description instead')
-  String? get errorString => description;
 }

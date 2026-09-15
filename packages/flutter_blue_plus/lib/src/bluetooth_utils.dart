@@ -16,18 +16,6 @@ enum PhyCoding { noPreferred, s2, s8 }
 
 enum BluetoothBondState { none, bonding, bonded }
 
-@Deprecated('Use PhyCoding instead')
-enum PhyOption { noPreferred, s2, s8 }
-
-@Deprecated('Use Phy instead')
-enum PhyType { le1m, le2m, leCoded }
-
-@Deprecated('Use BluetoothConnectionState instead')
-enum BluetoothDeviceState { disconnected, connecting, connected, disconnecting }
-
-@Deprecated('Use BluetoothAdapterState instead')
-enum BluetoothState { unknown, unavailable, unauthorized, turningOn, on, turningOff, off }
-
 extension PhyExt on Phy {
   int get mask {
     switch (this) {
@@ -155,5 +143,4 @@ BluetoothService? _findPrimaryService(BmDiscoverServicesResult? bmServices, Guid
   );
   return service != null ? BluetoothService.fromProto(service) : null;
 }
-
 

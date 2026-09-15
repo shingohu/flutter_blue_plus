@@ -89,11 +89,6 @@ class Guid {
   @override
   int get hashCode => str128.hashCode;
 
-  @Deprecated('use str128 instead')
-  String get uuid128 => str128;
-
-  @Deprecated('use str instead')
-  String get uuid => str;
 }
 
 String _hexEncode(List<int> numbers) {

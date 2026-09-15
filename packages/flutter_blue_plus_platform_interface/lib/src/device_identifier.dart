@@ -12,8 +12,6 @@ class DeviceIdentifier {
   @override
   bool operator ==(other) => other is DeviceIdentifier && _compareAsciiLowerCase(str, other.str) == 0;
 
-  @Deprecated('Use str instead')
-  String get id => str;
 }
 
 int _compareAsciiLowerCase(String a, String b) {

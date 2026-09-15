@@ -3,6 +3,43 @@
 
 Breaking changes in FlutterBluePlus, listed version by version.
 
+## Unreleased: deprecated API removal
+
+Deprecated declarations have been deleted, including getters, the old constructor,
+and enum types. This is a source-breaking change for applications using them.
+The current APIs and the platform channel protocol are unchanged.
+
+| Removed API | Replacement |
+| --- | --- |
+| `DeviceIdentifier.id` | `str` |
+| `Guid.uuid128`, `Guid.uuid` | `str128`, `str` |
+| Characteristic, descriptor and service `deviceId` | `remoteId` |
+| `BluetoothCharacteristic.value` | `lastValueStream` |
+| `BluetoothCharacteristic.onValueChangedStream` | `onValueReceived` |
+| `BluetoothDescriptor.value` | `onValueReceived` (preserves the deleted getter's behavior) |
+| `BluetoothDevice.pair()` | `createBond()` |
+| `BluetoothDevice.id` | `remoteId` |
+| `BluetoothDevice.localName`, `name` | `platformName` |
+| `BluetoothDevice.state` | `connectionState` |
+| `BluetoothDevice.fromProto(p)` | `BluetoothDevice.fromId(p.remoteId.str)` |
+| `BluetoothDevice.isDiscoveringServices` | Track the `discoverServices()` future in the application |
+| `BluetoothDevice.servicesStream`, `services` | Use `discoverServices()` results or `servicesList`; the deleted getters only emitted an empty list |
+| `FlutterBluePlus.turnOff()` | No programmatic replacement; Bluetooth can be disabled in system settings |
+| `FlutterBluePlus.isOn` | `await FlutterBluePlus.adapterState.first == BluetoothAdapterState.on` |
+| `FlutterBluePlus.name`, `state` | `adapterName`, `adapterState` |
+| `FlutterBluePlus.connectedSystemDevices` | `systemDevices([Guid('1800')])`, or supply the relevant service UUIDs |
+| `FlutterBluePlus.instance` | Remove `.instance` |
+| `FlutterBluePlus.isAvailable` | `isSupported` |
+| `FlutterBluePlus.scan()` | Listen to `scanResults` and call `startScan()` / `stopScan()` |
+| `AdvertisementData.localName` | `advName` |
+| `FlutterBluePlusException.errorName`, `errorCode`, `errorString` | `function`, `code`, `description` |
+| `PhyOption`, `PhyType` | `PhyCoding`, `Phy` |
+| `BluetoothDeviceState`, `BluetoothState` | `BluetoothConnectionState`, `BluetoothAdapterState` |
+
+The replacements for the old enum types are distinct types. In particular,
+`BluetoothConnectionState` only exposes `connected` and `disconnected`; track
+pending connection operations in application state if needed.
+
 ## 1.8.6
 * **renamed:** `BluetoothDevice.id` -> `remoteId`
 * **renamed:** `FlutterBluePlus.name` -> `adapterName`

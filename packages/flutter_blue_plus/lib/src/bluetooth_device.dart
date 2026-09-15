@@ -699,36 +699,4 @@ class BluetoothDevice {
         '}';
   }
 
-  @Deprecated("removed. no replacement")
-  Stream<bool> get isDiscoveringServices async* {
-    yield false;
-  }
-
-  @Deprecated('Use createBond() instead')
-  Future<void> pair() async => await createBond();
-
-  @Deprecated('Use remoteId instead')
-  DeviceIdentifier get id => remoteId;
-
-  @Deprecated('Use platformName instead')
-  String get localName => platformName;
-
-  @Deprecated('Use platformName instead')
-  String get name => platformName;
-
-  @Deprecated('Use connectionState instead')
-  Stream<BluetoothConnectionState> get state => connectionState;
-
-  @Deprecated("removed. no replacement")
-  Stream<List<BluetoothService>> get servicesStream async* {
-    yield [];
-  }
-
-  @Deprecated("removed. no replacement")
-  Stream<List<BluetoothService>> get services async* {
-    yield [];
-  }
-
-  @Deprecated('Use fromId instead')
-  BluetoothDevice.fromProto(BmBluetoothDevice p) : remoteId = p.remoteId;
 }

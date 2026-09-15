@@ -225,9 +225,4 @@ class BluetoothDescriptor {
         '}';
   }
 
-  @Deprecated('Use onValueReceived instead')
-  Stream<List<int>> get value => onValueReceived;
-
-  @Deprecated('Use remoteId instead')
-  DeviceIdentifier get deviceId => remoteId;
 }

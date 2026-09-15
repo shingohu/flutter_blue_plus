@@ -343,14 +343,6 @@ class BluetoothCharacteristic {
         '}';
   }
 
-  @Deprecated('Use remoteId instead')
-  DeviceIdentifier get deviceId => remoteId;
-
-  @Deprecated('Use lastValueStream instead')
-  Stream<List<int>> get value => lastValueStream;
-
-  @Deprecated('Use onValueReceived instead')
-  Stream<List<int>> get onValueChangedStream => onValueReceived;
 }
 
 class CharacteristicProperties {

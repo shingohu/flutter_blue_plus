@@ -55,6 +55,4 @@ class BluetoothService {
         '}';
   }
 
-  @Deprecated('Use remoteId instead')
-  DeviceIdentifier get deviceId => remoteId;
 }
