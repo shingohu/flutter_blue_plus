@@ -81,18 +81,19 @@ class Guid {
 
   // shortest representation
   String get str {
-    bool starts = str128.startsWith('0000');
-    bool ends = str128.contains('-0000-1000-8000-00805f9b34fb');
+    final value = str128;
+    bool starts = value.startsWith('0000');
+    bool ends = value.contains('-0000-1000-8000-00805f9b34fb');
     if (starts && ends) {
       // 16-bit
-      return str128.substring(4, 8);
+      return value.substring(4, 8);
     }
     if (ends) {
       // 32-bit
-      return str128.substring(0, 8);
+      return value.substring(0, 8);
     }
     // 128-bit
-    return str128;
+    return value;
   }
 
   @override

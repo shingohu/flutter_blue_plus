@@ -61,6 +61,8 @@ void main() {
   test('string representations remain unchanged', () {
     expect(Guid('180d').str, '180d');
     expect(Guid('0000180d').str, '180d');
+    expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str, '180d');
+    expect(Guid('12345678').str, '12345678');
     expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str128, '0000180d-0000-1000-8000-00805f9b34fb');
     expect(Guid('12345678-1234-5678-1234-567812345678').str, '12345678-1234-5678-1234-567812345678');
   });
