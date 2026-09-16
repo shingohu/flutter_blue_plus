@@ -44,11 +44,9 @@ class Guid {
       return List.filled(16, 0);
     }
 
-    input = input.replaceAll('-', '');
-
     List<int>? bytes = _tryHexDecode(input);
     if (bytes == null) {
-      throw FormatException("GUID not hex format: $input");
+      throw FormatException("GUID not hex format: ${input.replaceAll('-', '')}");
     }
 
     _checkLen(bytes.length);
@@ -151,14 +149,49 @@ class Guid {
 }
 
 List<int>? _tryHexDecode(String hex) {
-  List<int> numbers = [];
-  for (int i = 0; i < hex.length; i += 2) {
-    String hexPart = hex.substring(i, i + 2);
-    int? num = int.tryParse(hexPart, radix: 16);
-    if (num == null) {
-      return null;
+  final numbers = <int>[];
+  var highCode = -1;
+
+  for (var i = 0; i < hex.length; i++) {
+    final code = hex.codeUnitAt(i);
+    if (code == 0x2d) continue;
+
+    if (highCode < 0) {
+      highCode = code;
+      continue;
     }
-    numbers.add(num);
+
+    final high = _hexNibble(highCode);
+    final low = _hexNibble(code);
+    if (high >= 0 && low >= 0) {
+      numbers.add((high << 4) | low);
+    } else {
+      final value =
+          int.tryParse(String.fromCharCodes(<int>[highCode, code]), radix: 16);
+      if (value == null) return null;
+      numbers.add(value);
+    }
+    highCode = -1;
   }
+
+  if (highCode >= 0) {
+    // Preserve the legacy RangeError for odd-length input.
+    final sanitized = hex.replaceAll('-', '');
+    sanitized.substring(sanitized.length - 1, sanitized.length + 1);
+  }
+
   return numbers;
+}
+
+int _hexNibble(int code) {
+  if (code >= 0x30 && code <= 0x39) {
+    return code - 0x30;
+  }
+  if (code >= 0x41 && code <= 0x46) {
+    return code - 0x41 + 10;
+  }
+  if (code >= 0x61 && code <= 0x66) {
+    return code - 0x61 + 10;
+  }
+  return -1;
 }

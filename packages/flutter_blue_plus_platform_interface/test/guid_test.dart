@@ -73,4 +73,65 @@ void main() {
     expect(Guid('ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB').str128, 'abcdefab-cdef-abcd-efab-cdefabcdefab');
     expect(Guid('12345678-1234-5678-1234-567812345678').str, '12345678-1234-5678-1234-567812345678');
   });
+
+  group('Guid parsing', () {
+    test('accepts supported forms and arbitrary hyphen positions', () {
+      expect(Guid('180d').bytes, <int>[0x18, 0x0d]);
+      expect(Guid('12-34-56-78').bytes, <int>[0x12, 0x34, 0x56, 0x78]);
+      expect(Guid('-12345678-1234-5678-1234-567812345678-').bytes, <int>[
+        0x12,
+        0x34,
+        0x56,
+        0x78,
+        0x12,
+        0x34,
+        0x56,
+        0x78,
+        0x12,
+        0x34,
+        0x56,
+        0x78,
+        0x12,
+        0x34,
+        0x56,
+        0x78,
+      ]);
+      expect(Guid('ABCd').bytes, <int>[0xab, 0xcd]);
+    });
+
+    test('preserves legacy parsing edge cases', () {
+      expect(Guid('').bytes, List<int>.filled(16, 0));
+      expect(Guid('+f00').bytes, <int>[0x0f, 0x00]);
+      expect(
+        () => Guid('-'),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            'GUID must be 16, 32, or 128 bit, yours: 0-bit',
+          ),
+        ),
+      );
+      expect(
+        () => Guid('zz-zz'),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            'GUID not hex format: zzzz',
+          ),
+        ),
+      );
+      expect(() => Guid('abc'), throwsRangeError);
+    });
+
+    test('returns mutable growable bytes', () {
+      final bytes = Guid('180d').bytes;
+
+      bytes[0] = 0x12;
+      bytes.add(0x34);
+
+      expect(bytes, <int>[0x12, 0x0d, 0x34]);
+    });
+  });
 }
