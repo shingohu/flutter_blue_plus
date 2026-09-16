@@ -78,19 +78,19 @@ class Guid {
 
   // shortest representation
   String get str {
-    final value = str128;
-    bool starts = value.startsWith('0000');
-    bool ends = value.contains('-0000-1000-8000-00805f9b34fb');
-    if (starts && ends) {
-      // 16-bit
-      return value.substring(4, 8);
+    final length = bytes.length;
+    if (length == 2) {
+      return _hexEncodeRange(0, 2);
     }
-    if (ends) {
-      // 32-bit
-      return value.substring(0, 8);
+    if (length == 4) {
+      final start = (bytes[0] & 0xff) == 0 && (bytes[1] & 0xff) == 0 ? 2 : 0;
+      return _hexEncodeRange(start, 4);
     }
-    // 128-bit
-    return value;
+    if (length == 16 && _matchesBluetoothBaseTail()) {
+      final start = (bytes[0] & 0xff) == 0 && (bytes[1] & 0xff) == 0 ? 2 : 0;
+      return _hexEncodeRange(start, 4);
+    }
+    return str128;
   }
 
   @override
@@ -145,6 +145,24 @@ class Guid {
       return _bluetoothBaseTail[index - 4];
     }
     return bytes[index] & 0xff;
+  }
+
+  bool _matchesBluetoothBaseTail() {
+    for (var i = 4; i < 16; i++) {
+      if ((bytes[i] & 0xff) != _bluetoothBaseTail[i - 4]) return false;
+    }
+    return true;
+  }
+
+  String _hexEncodeRange(int start, int end) {
+    final output = Uint8List((end - start) * 2);
+    var offset = 0;
+    for (var i = start; i < end; i++) {
+      final byte = bytes[i] & 0xff;
+      output[offset++] = _hexDigits.codeUnitAt(byte >> 4);
+      output[offset++] = _hexDigits.codeUnitAt(byte & 0x0f);
+    }
+    return String.fromCharCodes(output);
   }
 }
 

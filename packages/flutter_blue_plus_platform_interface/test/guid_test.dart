@@ -67,6 +67,8 @@ void main() {
     expect(Guid('0000180d').str, '180d');
     expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str, '180d');
     expect(Guid('12345678').str, '12345678');
+    expect(Guid('12345678-0000-1000-8000-00805f9b34fb').str, '12345678');
+    expect(Guid('00001234-0000-1000-8000-00805f9b34fc').str, '00001234-0000-1000-8000-00805f9b34fc');
     expect(Guid('180d').str128, '0000180d-0000-1000-8000-00805f9b34fb');
     expect(Guid('12345678').str128, '12345678-0000-1000-8000-00805f9b34fb');
     expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str128, '0000180d-0000-1000-8000-00805f9b34fb');
@@ -132,6 +134,40 @@ void main() {
       bytes.add(0x34);
 
       expect(bytes, <int>[0x12, 0x0d, 0x34]);
+    });
+
+    test('masks byte values in shortest representations', () {
+      expect(Guid.fromBytes(<int>[0x118, -0xf3]).str, '180d');
+      expect(Guid.fromBytes(<int>[0x100, 0x100, 0x118, -0xf3]).str, '180d');
+      expect(
+        Guid.fromBytes(<int>[
+          0x100,
+          0x100,
+          0x118,
+          -0xf3,
+          0,
+          0,
+          0x10,
+          0,
+          0x80,
+          0,
+          0,
+          0x80,
+          0x5f,
+          0x9b,
+          0x34,
+          0xfb,
+        ]).str,
+        '180d',
+      );
+    });
+
+    test('continues to reject invalid lengths when creating shortest representations', () {
+      final bytes = <int>[0x18, 0x0d];
+      final guid = Guid.fromBytes(bytes);
+      bytes.add(0);
+
+      expect(() => guid.str, throwsRangeError);
     });
   });
 }
