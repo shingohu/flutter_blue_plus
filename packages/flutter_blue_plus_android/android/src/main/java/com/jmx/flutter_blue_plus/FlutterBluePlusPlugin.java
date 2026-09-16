@@ -2133,9 +2133,9 @@ public class FlutterBluePlusPlugin implements
     private ScanCallback scanCallback;
 
     private int scanCountIncrement(String remoteId) {
-        if (mScanCounts.get(remoteId) == null) {mScanCounts.put(remoteId, 0);}
-        int count = mScanCounts.get(remoteId);
-        mScanCounts.put(remoteId, count+1);
+        Integer storedCount = mScanCounts.get(remoteId);
+        int count = storedCount != null ? storedCount : 0;
+        mScanCounts.put(remoteId, count + 1);
         return count;
     }
 

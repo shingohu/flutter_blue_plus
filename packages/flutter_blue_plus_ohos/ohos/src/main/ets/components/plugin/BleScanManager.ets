@@ -547,10 +547,7 @@ export default class BleScanManager {
    * @returns 递增前的计数
    */
   scanCountIncrement(remoteId: string): number {
-    if (this.scanCountsMap.get(remoteId) == null) {
-      this.scanCountsMap.set(remoteId, 0);
-    }
-    let count: number = this.scanCountsMap.get(remoteId) as number;
+    let count: number = (this.scanCountsMap.get(remoteId) as number) ?? 0;
     this.scanCountsMap.set(remoteId, count + 1);
     return count;
   }

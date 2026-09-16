@@ -2181,8 +2181,8 @@ didDiscoverCharacteristicsForService:(CBService *)service
 }
 
 - (NSInteger)scanCountIncrement:(NSString *)remoteId {
-    if (!self.scanCounts[remoteId]) {self.scanCounts[remoteId] = @(0);}
-    NSInteger count = [self.scanCounts[remoteId] integerValue];
+    NSNumber *storedCount = self.scanCounts[remoteId];
+    NSInteger count = storedCount ? [storedCount integerValue] : 0;
     self.scanCounts[remoteId] = @(count + 1);
     return count;
 }
