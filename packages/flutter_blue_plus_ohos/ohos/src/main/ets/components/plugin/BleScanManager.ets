@@ -271,9 +271,11 @@ export default class BleScanManager {
       let remoteId: string = item.deviceId;
       let scanData: Uint8Array = new Uint8Array(item.data);
       let advHex: string = HexUtil.formatHexString(scanData);
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `scanCallback: deviceId=${remoteId}, deviceName='${item.deviceName}', rssi=${item.rssi}, ` +
-        `connectable=${item.connectable}, dataLen=${scanData.length}`);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `scanCallback: deviceId=${remoteId}, deviceName='${item.deviceName}', rssi=${item.rssi}, ` +
+          `connectable=${item.connectable}, dataLen=${scanData.length}`);
+      }
       if (this.shouldSuppressScanResult(remoteId, advHex)) {
         return;
       }
@@ -287,14 +289,18 @@ export default class BleScanManager {
           connectable: item.connectable,
         });
       let advDataSource: AdvData = BleAdvParser.parseAdvHexData(advHex);
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `scanCallback: advParsed localName='${advDataSource.localName}', ` +
-        `serviceUUIDs=${advDataSource.serviceUUIDs?.length ?? 0}, ` +
-        `flags='${advDataSource.flags}', appearance=${advDataSource.appearance}`);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `scanCallback: advParsed localName='${advDataSource.localName}', ` +
+          `serviceUUIDs=${advDataSource.serviceUUIDs?.length ?? 0}, ` +
+          `flags='${advDataSource.flags}', appearance=${advDataSource.appearance}`);
+      }
       let deviceName: string = await this.resolveDeviceName(device, item.deviceName, advDataSource);
       device.setName(deviceName);
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `scanCallback: resolvedName='${deviceName}' for ${remoteId}`);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `scanCallback: resolvedName='${deviceName}' for ${remoteId}`);
+      }
       let name: string = device.getName() != null ? device.getName() : '';
       let keywords: List<string> = this.scanFiltersMap.get('with_keywords') as List<string>;
       if (this.filterKeywords(keywords, name) == false) {
@@ -372,41 +378,52 @@ export default class BleScanManager {
    */
   private async resolveDeviceName(device: BleDevice, scanDeviceName: string,
     advDataSource: AdvData): Promise<string> {
+    let remoteId: string = device.getMac();
     // 优先级 1: OHOS 栈已解析的 deviceName（含 Scan Response 中的名称）
     let deviceName: string = scanDeviceName || '';
     if (deviceName !== '') {
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `resolveDeviceName: using scanDeviceName='${deviceName}' for ${device.getMac()}`);
-      this.nameSeenMap.set(device.getMac(), deviceName);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `resolveDeviceName: using scanDeviceName='${deviceName}' for ${remoteId}`);
+      }
+      this.nameSeenMap.set(remoteId, deviceName);
       return deviceName;
     }
     // 优先级 2: 广播 AD type 0x08/0x09 解析的 localName
     deviceName = advDataSource.localName || '';
     if (deviceName !== '') {
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `resolveDeviceName: using advLocalName='${deviceName}' for ${device.getMac()}`);
-      this.nameSeenMap.set(device.getMac(), deviceName);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `resolveDeviceName: using advLocalName='${deviceName}' for ${remoteId}`);
+      }
+      this.nameSeenMap.set(remoteId, deviceName);
       return deviceName;
     }
     // 优先级 3: nameSeenMap 缓存
-    let cached: string | undefined = this.nameSeenMap.get(device.getMac());
+    let cached: string | undefined = this.nameSeenMap.get(remoteId);
     if (cached != null && cached !== '') {
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `resolveDeviceName: using cachedName='${cached}' for ${device.getMac()}`);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `resolveDeviceName: using cachedName='${cached}' for ${remoteId}`);
+      }
       return cached;
     }
     // 优先级 4: 临时创建 GattClientDevice 读取
-    BleUtils.log(hilog.LogLevel.DEBUG,
-      `resolveDeviceName: no name from scan/adv/cache, creating GattClient for ${device.getMac()}`);
+    if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+      BleUtils.log(hilog.LogLevel.DEBUG,
+        `resolveDeviceName: no name from scan/adv/cache, creating GattClient for ${remoteId}`);
+    }
     let gattClient: ble.GattClientDevice | null = null;
     try {
-      gattClient = ble.createGattClientDevice(device.getMac());
+      gattClient = ble.createGattClientDevice(remoteId);
       deviceName = await gattClient.getDeviceName();
-      BleUtils.log(hilog.LogLevel.DEBUG,
-        `resolveDeviceName: gattClient.getDeviceName() returned '${deviceName}' for ${device.getMac()}`);
+      if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+        BleUtils.log(hilog.LogLevel.DEBUG,
+          `resolveDeviceName: gattClient.getDeviceName() returned '${deviceName}' for ${remoteId}`);
+      }
     } catch (e) {
       BleUtils.log(hilog.LogLevel.WARN,
-        `resolveDeviceName: gattClient.getDeviceName() failed for ${device.getMac()}: ${JSON.stringify(e)}`);
+        `resolveDeviceName: gattClient.getDeviceName() failed for ${remoteId}: ${JSON.stringify(e)}`);
       deviceName = '';
     } finally {
       if (gattClient != null) {
@@ -414,12 +431,12 @@ export default class BleScanManager {
           gattClient.close();
         } catch (closeErr) {
           BleUtils.log(hilog.LogLevel.WARN,
-            `resolveDeviceName: failed to close gattClient for ${device.getMac()}: ${JSON.stringify(closeErr)}`);
+            `resolveDeviceName: failed to close gattClient for ${remoteId}: ${JSON.stringify(closeErr)}`);
         }
       }
     }
     // 缓存本次解析结果（含空串），后续该设备广播直接复用，不再创建 GattClientDevice。
-    this.nameSeenMap.set(device.getMac(), deviceName);
+    this.nameSeenMap.set(remoteId, deviceName);
     return deviceName;
   }
 
