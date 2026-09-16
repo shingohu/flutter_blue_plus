@@ -9,6 +9,10 @@ final class FlutterBluePlusOhos extends FlutterBluePlusPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_blue_plus/methods');
 
+  FlutterBluePlusOhos() {
+    methodChannel.setMethodCallHandler(_methodCallHandler);
+  }
+
   var _didRestart = false;
   var _logLevel = LogLevel.none;
   var _logColor = true;
@@ -402,9 +406,6 @@ final class FlutterBluePlusOhos extends FlutterBluePlusPlatform {
     if (!_didRestart && method != "setLogLevel") {
       await _flutterRestart();
     }
-
-    // set platform method handler
-    methodChannel.setMethodCallHandler(_methodCallHandler);
 
     // log args
     if (_logLevel == LogLevel.verbose) {

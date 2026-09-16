@@ -173,12 +173,15 @@ export default class BleUtils {
   }
 
   /**
-   * 将 Uint8Array 转换为独立的 ArrayBuffer（拷贝，
-   * 避免视图共享底层 buffer 带来的越界问题）。
+   * 将 Uint8Array 转换为对应字节范围的 ArrayBuffer。完整覆盖底层 buffer 时直接复用，
+   * 否则拷贝视图范围，避免把范围外的数据传给平台 API。
    * @param array - 输入 Uint8Array
    * @returns 对应字节范围的 ArrayBuffer
    */
   static typedArrayToBuffer(array: Uint8Array): ArrayBuffer {
+    if (array.byteOffset === 0 && array.byteLength === array.buffer.byteLength) {
+      return array.buffer;
+    }
     return array.buffer.slice(array.byteOffset, array.byteLength + array.byteOffset);
   }
 
@@ -308,5 +311,11 @@ export default class BleUtils {
         hilog.debug(BleUtils.DOMAIN, BleUtils.TAG, message);
         break;
     }
+  }
+
+  /** 当前插件及系统配置是否允许输出指定级别日志。 */
+  static isLoggable(level: hilog.LogLevel): boolean {
+    // hilog 级别数值越大越严重（DEBUG=3…FATAL=7）。
+    return level >= BleUtils.logLevel && hilog.isLoggable(BleUtils.DOMAIN, BleUtils.TAG, level);
   }
 }

@@ -31,8 +31,8 @@ const _channelName = 'flutter_blue_plus/methods';
 //  * outgoing: Flutter invokes native methods (clearGattCache, connect, ...).
 //    We intercept these via setMockMethodCallHandler and record name + args.
 //  * incoming: native pushes On* events back to Flutter. The plugin registers
-//    a handler via setMethodCallHandler (done lazily in _callOhosMethod) and we
-//    drive those events with handlePlatformMessage.
+//    a handler via setMethodCallHandler in its constructor and we drive those
+//    events with handlePlatformMessage.
 
 Map<String, dynamic> _invokeLog = {};
 dynamic Function(MethodCall call)? _invokeHandler;

@@ -92,6 +92,7 @@ public class FlutterBluePlusPlugin implements
 
     private Context context;
     private MethodChannel methodChannel;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private static final String NAMESPACE = "flutter_blue_plus";
 
     private BluetoothManager mBluetoothManager;
@@ -2428,8 +2429,10 @@ public class FlutterBluePlusPlugin implements
         {
             // this callback is only for notifications & indications
             LogLevel level = LogLevel.DEBUG;
-            log(level, "onCharacteristicChanged:");
-            log(level, "  chr: " + uuidStr(characteristic.getUuid()));
+            if (isLogEnabled(level)) {
+                log(level, "onCharacteristicChanged:");
+                log(level, "  chr: " + uuidStr(characteristic.getUuid()));
+            }
             onCharacteristicReceived(gatt, characteristic, value, BluetoothGatt.GATT_SUCCESS);
         }
 
@@ -2439,10 +2442,12 @@ public class FlutterBluePlusPlugin implements
         {
             // this callback is only for explicit characteristic reads
             LogLevel level = status == BluetoothGatt.GATT_SUCCESS ? LogLevel.DEBUG : LogLevel.ERROR;
-            log(level, "onCharacteristicRead:");
-            log(level, "  chr: " + uuidStr(characteristic.getUuid()));
-            log(level, "  status: " + gattErrorString(status) + " (" + status + ")");
-            log(level, "  instanceId: " + getInstanceId(gatt, characteristic));
+            if (isLogEnabled(level)) {
+                log(level, "onCharacteristicRead:");
+                log(level, "  chr: " + uuidStr(characteristic.getUuid()));
+                log(level, "  status: " + gattErrorString(status) + " (" + status + ")");
+                log(level, "  instanceId: " + getInstanceId(gatt, characteristic));
+            }
             onCharacteristicReceived(gatt, characteristic, value, status);
         }
 
@@ -2450,9 +2455,11 @@ public class FlutterBluePlusPlugin implements
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status)
         {
             LogLevel level = status == BluetoothGatt.GATT_SUCCESS ? LogLevel.DEBUG : LogLevel.ERROR;
-            log(level, "onCharacteristicWrite:");
-            log(level, "  chr: " + uuidStr(characteristic.getUuid()));
-            log(level, "  status: " + gattErrorString(status) + " (" + status + ")");
+            if (isLogEnabled(level)) {
+                log(level, "onCharacteristicWrite:");
+                log(level, "  chr: " + uuidStr(characteristic.getUuid()));
+                log(level, "  status: " + gattErrorString(status) + " (" + status + ")");
+            }
 
             // For "writeWithResponse", onCharacteristicWrite is called after the remote sends back a write response.
             // For "writeWithoutResponse", onCharacteristicWrite is called as long as there is still space left
@@ -2897,7 +2904,7 @@ public class FlutterBluePlusPlugin implements
 
     private void log(LogLevel level, String message)
     {
-        if(level.ordinal() > logLevel.ordinal()) {
+        if(!isLogEnabled(level)) {
             return;
         }
         switch(level) {
@@ -2916,9 +2923,14 @@ public class FlutterBluePlusPlugin implements
         }
     }
 
+    private boolean isLogEnabled(LogLevel level)
+    {
+        return level.ordinal() <= logLevel.ordinal();
+    }
+
     private void invokeMethodUIThread(final String method, HashMap<String, Object> data)
     {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        mainHandler.post(() -> {
             //Could already be teared down at this moment
             if (methodChannel != null) {
                 methodChannel.invokeMethod(method, data);

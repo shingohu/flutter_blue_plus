@@ -5,7 +5,11 @@
 #import "./include/flutter_blue_plus_darwin/FlutterBluePlusPlugin.h"
 #include <Foundation/NSObjCRuntime.h>
 
-#define Log(LEVEL, FORMAT, ...) [self log:LEVEL format:@"[FBP-iOS] " FORMAT, ##__VA_ARGS__]
+#define Log(LEVEL, FORMAT, ...) do { \
+    if ((LEVEL) <= self.logLevel) { \
+        [self log:(LEVEL) format:@"[FBP-iOS] " FORMAT, ##__VA_ARGS__]; \
+    } \
+} while (0)
 
 NSString * const CCCD = @"2902";
 

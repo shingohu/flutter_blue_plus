@@ -474,7 +474,7 @@ class FlutterBluePlus {
     return await _invokePlatform(() => FlutterBluePlusPlatform.instance.getPhySupport(PhySupportRequest()));
   }
 
-  static Future<void> _initFlutterBluePlus() async {
+  static void _initFlutterBluePlus() {
     if (_initialized) {
       return;
     }
@@ -618,7 +618,7 @@ class FlutterBluePlus {
   /// invoke a platform method
   static Future<T> _invokePlatform<T>(Future<T> Function() invoke) async {
     // initialize
-    await _initFlutterBluePlus();
+    _initFlutterBluePlus();
 
     // invoke
     return await invoke();

@@ -294,8 +294,7 @@ export default class BleNotifyManager {
     this.plugin.gattCache.writeDescMap.set(key, descriptorValue as Uint8Array);
     // write descriptor
     if (descriptorValue) {
-      let u8Array: Uint8Array = new Uint8Array(descriptorValue);
-      descriptor.descriptorValue = BleUtils.typedArrayToBuffer(u8Array);
+      descriptor.descriptorValue = BleUtils.typedArrayToBuffer(descriptorValue);
     }
     try {
       await ctx.gatt.writeDescriptorValue(descriptor);
@@ -395,13 +394,15 @@ export default class BleNotifyManager {
     response.set('characteristic_uuid', BleUtils.uuidStr(characteristic.characteristicUuid));
     let instanceId: number = BleGattShared.getInstanceId(characteristic, services);
     response.set('instance_id', instanceId);
-    response.set('value', new Uint8Array(characteristic.characteristicValue));
+    let characteristicValue: Uint8Array = new Uint8Array(characteristic.characteristicValue);
+    response.set('value', characteristicValue);
     response.set('success', 1);
     response.set('error_code', 0);
     response.set('error_string', 'GATT_SUCCESS');
     this.plugin.channel?.invokeMethod('OnCharacteristicReceived', response);
-    // BLE 调试助手发送数据成功：打印接收到的特征值（测试用例日志）
-    BleUtils.log(hilog.LogLevel.DEBUG, 'characteristic value: ' + HexUtil.formatHexString(new Uint8Array(characteristic.characteristicValue)));
+    if (BleUtils.isLoggable(hilog.LogLevel.DEBUG)) {
+      BleUtils.log(hilog.LogLevel.DEBUG, 'characteristic value: ' + HexUtil.formatHexString(characteristicValue));
+    }
   }
 
   /** 清空所有通知回调映射。cleanup 全局清理时调用
