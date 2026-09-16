@@ -219,9 +219,13 @@ class FlutterBluePlus {
 
   /// Retrieve a list of devices currently connected to your app
   static List<BluetoothDevice> get connectedDevices {
-    var copy = Map.from(_connectionStates);
-    copy.removeWhere((key, value) => value.connectionState == BmConnectionStateEnum.disconnected);
-    return copy.values.map((v) => BluetoothDevice(remoteId: v.remoteId)).toList();
+    final devices = <BluetoothDevice>[];
+    for (final response in _connectionStates.values) {
+      if (response.connectionState != BmConnectionStateEnum.disconnected) {
+        devices.add(BluetoothDevice(remoteId: response.remoteId));
+      }
+    }
+    return devices;
   }
 
   /// Retrieve a list of devices currently connected to the system
@@ -231,23 +235,24 @@ class FlutterBluePlus {
   static Future<List<BluetoothDevice>> systemDevices(List<Guid> withServices) async {
     var r = await _invokePlatform(
         () => FlutterBluePlusPlatform.instance.getSystemDevices(BmSystemDevicesRequest(withServices: withServices)));
-    for (BmBluetoothDevice device in r.devices) {
-      if (device.platformName != null) {
-        _platformNames[device.remoteId] = device.platformName!;
-      }
-    }
-    return r.devices.map((d) => BluetoothDevice.fromId(d.remoteId.str)).toList();
+    return _bmDevicesToDevices(r.devices);
   }
 
   /// Retrieve a list of bonded devices (Android only)
   static Future<List<BluetoothDevice>> get bondedDevices async {
     var r = await _invokePlatform(() => FlutterBluePlusPlatform.instance.getBondedDevices(BmBondedDevicesRequest()));
-    for (BmBluetoothDevice device in r.devices) {
-      if (device.platformName != null) {
-        _platformNames[device.remoteId] = device.platformName!;
+    return _bmDevicesToDevices(r.devices);
+  }
+
+  static List<BluetoothDevice> _bmDevicesToDevices(List<BmBluetoothDevice> responses) {
+    final devices = <BluetoothDevice>[];
+    for (final response in responses) {
+      if (response.platformName != null) {
+        _platformNames[response.remoteId] = response.platformName!;
       }
+      devices.add(BluetoothDevice.fromId(response.remoteId.str));
     }
-    return r.devices.map((d) => BluetoothDevice.fromId(d.remoteId.str)).toList();
+    return devices;
   }
 
   /// Start a scan, and return a stream of results
