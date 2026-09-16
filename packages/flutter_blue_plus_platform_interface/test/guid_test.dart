@@ -35,9 +35,11 @@ void main() {
       final guid = Guid.fromBytes(bytes);
 
       expect(guid, Guid('180d'));
+      expect(guid.str128, Guid('180d').str128);
       bytes[1] = 0x0f;
       expect(guid, Guid('180f'));
       expect(guid.hashCode, Guid('180f').hashCode);
+      expect(guid.str128, Guid('180f').str128);
     });
 
     test('masks byte values when comparing and hashing', () {
@@ -46,6 +48,7 @@ void main() {
 
       expect(outOfRange, normalized);
       expect(outOfRange.hashCode, normalized.hashCode);
+      expect(outOfRange.str128, normalized.str128);
     });
 
     test('continues to reject invalid lengths after bytes are mutated', () {
@@ -55,6 +58,7 @@ void main() {
 
       expect(() => guid == guid, throwsRangeError);
       expect(() => guid.hashCode, throwsRangeError);
+      expect(() => guid.str128, throwsRangeError);
     });
   });
 
@@ -63,7 +67,10 @@ void main() {
     expect(Guid('0000180d').str, '180d');
     expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str, '180d');
     expect(Guid('12345678').str, '12345678');
+    expect(Guid('180d').str128, '0000180d-0000-1000-8000-00805f9b34fb');
+    expect(Guid('12345678').str128, '12345678-0000-1000-8000-00805f9b34fb');
     expect(Guid('0000180d-0000-1000-8000-00805f9b34fb').str128, '0000180d-0000-1000-8000-00805f9b34fb');
+    expect(Guid('ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB').str128, 'abcdefab-cdef-abcd-efab-cdefabcdefab');
     expect(Guid('12345678-1234-5678-1234-567812345678').str, '12345678-1234-5678-1234-567812345678');
   });
 }

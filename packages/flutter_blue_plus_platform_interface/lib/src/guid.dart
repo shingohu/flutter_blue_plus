@@ -2,7 +2,10 @@
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+import 'dart:typed_data';
+
 class Guid {
+  static const String _hexDigits = '0123456789abcdef';
   static const List<int> _bluetoothBaseTail = [
     0x00,
     0x00,
@@ -62,21 +65,17 @@ class Guid {
 
   // 128-bit representation
   String get str128 {
-    if (bytes.length == 2) {
-      // 16-bit uuid
-      return '0000${_hexEncode(bytes)}-0000-1000-8000-00805f9b34fb'.toLowerCase();
+    final output = Uint8List(36);
+    var offset = 0;
+    for (var i = 0; i < 16; i++) {
+      if (i == 4 || i == 6 || i == 8 || i == 10) {
+        output[offset++] = 0x2d;
+      }
+      final byte = _canonicalByteAt(i);
+      output[offset++] = _hexDigits.codeUnitAt(byte >> 4);
+      output[offset++] = _hexDigits.codeUnitAt(byte & 0x0f);
     }
-    if (bytes.length == 4) {
-      // 32-bit uuid
-      return '${_hexEncode(bytes)}-0000-1000-8000-00805f9b34fb'.toLowerCase();
-    }
-    // 128-bit uuid
-    String one = _hexEncode(bytes.sublist(0, 4));
-    String two = _hexEncode(bytes.sublist(4, 6));
-    String three = _hexEncode(bytes.sublist(6, 8));
-    String four = _hexEncode(bytes.sublist(8, 10));
-    String five = _hexEncode(bytes.sublist(10, 16));
-    return "$one-$two-$three-$four-$five".toLowerCase();
+    return String.fromCharCodes(output);
   }
 
   // shortest representation
@@ -149,10 +148,6 @@ class Guid {
     }
     return bytes[index] & 0xff;
   }
-}
-
-String _hexEncode(List<int> numbers) {
-  return numbers.map((n) => (n & 0xFF).toRadixString(16).padLeft(2, '0')).join();
 }
 
 List<int>? _tryHexDecode(String hex) {
