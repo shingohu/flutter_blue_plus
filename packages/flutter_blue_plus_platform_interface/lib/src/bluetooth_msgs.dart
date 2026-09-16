@@ -149,29 +149,36 @@ class BmScanAdvertisement {
 
   factory BmScanAdvertisement.fromMap(Map<dynamic, dynamic> json) {
     // Get raw data
-    var rawManufacturerData = json['manufacturer_data'] ?? {};
-    var rawServiceData = json['service_data'] ?? {};
-    var rawServiceUuids = json['service_uuids'] ?? [];
+    var rawManufacturerData = json['manufacturer_data'];
+    var rawServiceData = json['service_data'];
+    var rawServiceUuids = json['service_uuids'];
+    var rawConnectable = json['connectable'];
 
     // Cast the data to the right type
     Map<int, List<int>> manufacturerData = {};
-    rawManufacturerData.forEach((k, v) {
-      manufacturerData[k] = v;
-    });
+    if (rawManufacturerData != null) {
+      rawManufacturerData.forEach((k, v) {
+        manufacturerData[k] = v;
+      });
+    }
     // Cast the data to the right type
     Map<Guid, List<int>> serviceData = {};
-    rawServiceData.forEach((k, v) {
-      serviceData[Guid(k)] = v;
-    });
+    if (rawServiceData != null) {
+      rawServiceData.forEach((k, v) {
+        serviceData[Guid(k)] = v;
+      });
+    }
     // Cast the data to the right type
     List<Guid> serviceUuids = [];
-    rawServiceUuids.forEach((e) => serviceUuids.add(Guid(e)));
+    if (rawServiceUuids != null) {
+      rawServiceUuids.forEach((e) => serviceUuids.add(Guid(e)));
+    }
 
     return BmScanAdvertisement(
       remoteId: DeviceIdentifier(json['remote_id']),
       platformName: json['platform_name'],
       advName: json['adv_name'],
-      connectable: json['connectable'] != null ? json['connectable'] != 0 : false,
+      connectable: rawConnectable != null ? rawConnectable != 0 : false,
       txPowerLevel: json['tx_power_level'],
       appearance: json['appearance'],
       manufacturerData: manufacturerData,
@@ -201,7 +208,8 @@ class BmScanResponse {
       advertisements.add(BmScanAdvertisement.fromMap(item));
     }
 
-    bool success = json['success'] == null || json['success'] != 0;
+    var rawSuccess = json['success'];
+    bool success = rawSuccess == null || rawSuccess != 0;
 
     return BmScanResponse(
       advertisements: advertisements,

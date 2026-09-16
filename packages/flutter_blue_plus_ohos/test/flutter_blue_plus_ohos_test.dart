@@ -826,6 +826,29 @@ void main() {
       await sub.cancel();
     });
 
+    test('OnScanResponse defaults omitted optional fields', () async {
+      final plugin = await makeReadyPlugin();
+      final completer = Completer<BmScanResponse>();
+      final sub = plugin.onScanResponse.listen(completer.complete);
+      await sendOn('OnScanResponse', {
+        'advertisements': [
+          {'remote_id': 'scan-minimal'},
+        ],
+      });
+      final response = await completer.future.timeout(const Duration(seconds: 2));
+      final advertisement = response.advertisements.single;
+      expect(response.success, isTrue);
+      expect(response.errorCode, 0);
+      expect(response.errorString, '');
+      expect(advertisement.remoteId.str, 'scan-minimal');
+      expect(advertisement.connectable, isFalse);
+      expect(advertisement.manufacturerData, isEmpty);
+      expect(advertisement.serviceData, isEmpty);
+      expect(advertisement.serviceUuids, isEmpty);
+      expect(advertisement.rssi, 0);
+      await sub.cancel();
+    });
+
     test('OnServicesReset -> onServicesReset', () async {
       final plugin = await makeReadyPlugin();
       final completer = Completer<BmBluetoothDevice>();
