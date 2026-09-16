@@ -482,7 +482,7 @@ class FlutterBluePlus {
     _initialized = true;
 
     // fbp version
-    FlutterBluePlusPlatform.log(_flutterBluePlusVersion);
+    FlutterBluePlusPlatform.log("[FBP] $_flutterBluePlusVersion");
 
     // android only
     if (!kIsWeb && Platform.isAndroid) {
