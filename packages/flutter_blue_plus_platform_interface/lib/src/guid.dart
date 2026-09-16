@@ -3,6 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 
 class Guid {
+  static const List<int> _bluetoothBaseTail = [
+    0x00,
+    0x00,
+    0x10,
+    0x00,
+    0x80,
+    0x00,
+    0x00,
+    0x80,
+    0x5f,
+    0x9b,
+    0x34,
+    0xfb,
+  ];
+
   final List<int> bytes;
 
   Guid.empty() : bytes = List.filled(16, 0);
@@ -84,11 +99,55 @@ class Guid {
   String toString() => str;
 
   @override
-  operator ==(other) => other is Guid && str128 == other.str128;
+  bool operator ==(Object other) {
+    if (other is! Guid) return false;
+
+    final length = bytes.length;
+    if (length == other.bytes.length && (length == 2 || length == 4 || length == 16)) {
+      for (var i = 0; i < length; i++) {
+        if ((bytes[i] & 0xff) != (other.bytes[i] & 0xff)) return false;
+      }
+      return true;
+    }
+
+    for (var i = 0; i < 16; i++) {
+      if (_canonicalByteAt(i) != other._canonicalByteAt(i)) return false;
+    }
+    return true;
+  }
 
   @override
-  int get hashCode => str128.hashCode;
+  int get hashCode => Object.hash(
+        _canonicalByteAt(0),
+        _canonicalByteAt(1),
+        _canonicalByteAt(2),
+        _canonicalByteAt(3),
+        _canonicalByteAt(4),
+        _canonicalByteAt(5),
+        _canonicalByteAt(6),
+        _canonicalByteAt(7),
+        _canonicalByteAt(8),
+        _canonicalByteAt(9),
+        _canonicalByteAt(10),
+        _canonicalByteAt(11),
+        _canonicalByteAt(12),
+        _canonicalByteAt(13),
+        _canonicalByteAt(14),
+        _canonicalByteAt(15),
+      );
 
+  int _canonicalByteAt(int index) {
+    if (bytes.length == 2) {
+      if (index < 2) return 0;
+      if (index < 4) return bytes[index - 2] & 0xff;
+      return _bluetoothBaseTail[index - 4];
+    }
+    if (bytes.length == 4) {
+      if (index < 4) return bytes[index] & 0xff;
+      return _bluetoothBaseTail[index - 4];
+    }
+    return bytes[index] & 0xff;
+  }
 }
 
 String _hexEncode(List<int> numbers) {
