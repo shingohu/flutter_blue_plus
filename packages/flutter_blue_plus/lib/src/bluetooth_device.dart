@@ -6,6 +6,10 @@ part of '../flutter_blue_plus.dart';
 
 class BluetoothDevice {
   final DeviceIdentifier remoteId;
+  _BluetoothDeviceResponseStreams? _cachedResponseStreams;
+
+  _BluetoothDeviceResponseStreams get _responseStreams =>
+      _cachedResponseStreams ??= _BluetoothDeviceResponseStreams(remoteId);
 
   BluetoothDevice({
     required this.remoteId,
@@ -130,11 +134,8 @@ class BluetoothDevice {
         autoConnect: autoConnect,
       );
 
-      var responseStream =
-          FlutterBluePlusPlatform.instance.onConnectionStateChanged.where((p) => p.remoteId == remoteId);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmConnectionStateResponse> futureState = responseStream.first;
+      Future<BmConnectionStateResponse> futureState = _responseStreams.connectionState.first;
 
       // record connection time
       if (!kIsWeb && Platform.isAndroid) {
@@ -219,11 +220,8 @@ class BluetoothDevice {
       // remove from auto connect list if there
       FlutterBluePlus._autoConnect.remove(remoteId);
 
-      var responseStream = FlutterBluePlusPlatform.instance.onConnectionStateChanged
-          .where((p) => p.remoteId == remoteId && p.connectionState == BmConnectionStateEnum.disconnected);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmConnectionStateResponse> futureState = responseStream.first;
+      Future<BmConnectionStateResponse> futureState = _responseStreams.disconnected.first;
 
       // Workaround Android race condition
       await _ensureAndroidDisconnectionDelay(androidDelay);
@@ -269,10 +267,8 @@ class BluetoothDevice {
     List<BluetoothService> result = [];
 
     try {
-      var responseStream = FlutterBluePlusPlatform.instance.onDiscoveredServices.where((p) => p.remoteId == remoteId);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDiscoverServicesResult> futureResponse = responseStream.first;
+      Future<BmDiscoverServicesResult> futureResponse = _responseStreams.discoveredServices.first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(
@@ -377,10 +373,8 @@ class BluetoothDevice {
     int rssi = 0;
 
     try {
-      var responseStream = FlutterBluePlusPlatform.instance.onReadRssi.where((p) => (p.remoteId == remoteId));
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmReadRssiResult> futureResponse = responseStream.first;
+      Future<BmReadRssiResult> futureResponse = _responseStreams.readRssi.first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(
@@ -453,11 +447,8 @@ class BluetoothDevice {
         mtu: desiredMtu,
       );
 
-      var responseStream =
-          FlutterBluePlusPlatform.instance.onMtuChanged.where((p) => p.remoteId == remoteId).map((p) => p.mtu);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<int> futureResponse = responseStream.first;
+      Future<int> futureResponse = _responseStreams.mtu.first;
 
       // invoke
       await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.requestMtu(request));
@@ -549,11 +540,8 @@ class BluetoothDevice {
     await mtx.take();
 
     try {
-      var responseStream = FlutterBluePlusPlatform.instance.onBondStateChanged
-          .where((p) => p.remoteId == remoteId && p.bondState != BmBondStateEnum.bonding);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmBondStateResponse> futureResponse = responseStream.first;
+      Future<BmBondStateResponse> futureResponse = _responseStreams.bondStateChange.first;
 
       // invoke
       bool changed = await FlutterBluePlus._invokePlatform(
@@ -589,11 +577,8 @@ class BluetoothDevice {
     await mtx.take();
 
     try {
-      var responseStream = FlutterBluePlusPlatform.instance.onBondStateChanged
-          .where((p) => p.remoteId == remoteId && p.bondState != BmBondStateEnum.bonding);
-
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmBondStateResponse> futureResponse = responseStream.first;
+      Future<BmBondStateResponse> futureResponse = _responseStreams.bondStateChange.first;
 
       // invoke
       bool changed = await FlutterBluePlus._invokePlatform(
@@ -698,5 +683,31 @@ class BluetoothDevice {
         'services: ${FlutterBluePlus._knownServices[remoteId]}'
         '}';
   }
+}
 
+class _BluetoothDeviceResponseStreams {
+  final DeviceIdentifier remoteId;
+
+  _BluetoothDeviceResponseStreams(this.remoteId);
+
+  late final Stream<BmConnectionStateResponse> connectionState =
+      FlutterBluePlusPlatform.instance.onConnectionStateChanged.where((response) => response.remoteId == remoteId);
+
+  late final Stream<BmConnectionStateResponse> disconnected =
+      connectionState.where((response) => response.connectionState == BmConnectionStateEnum.disconnected);
+
+  late final Stream<BmDiscoverServicesResult> discoveredServices =
+      FlutterBluePlusPlatform.instance.onDiscoveredServices.where((response) => response.remoteId == remoteId);
+
+  late final Stream<BmReadRssiResult> readRssi =
+      FlutterBluePlusPlatform.instance.onReadRssi.where((response) => response.remoteId == remoteId);
+
+  late final Stream<int> mtu = FlutterBluePlusPlatform.instance.onMtuChanged
+      .where((response) => response.remoteId == remoteId)
+      .map((response) => response.mtu);
+
+  late final Stream<BmBondStateResponse> bondStateChange =
+      FlutterBluePlusPlatform.instance.onBondStateChanged.where(
+        (response) => response.remoteId == remoteId && response.bondState != BmBondStateEnum.bonding,
+      );
 }
