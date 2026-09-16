@@ -402,7 +402,7 @@ final class FlutterBluePlusWinrt extends FlutterBluePlusPlatform {
     if (_logLevel == LogLevel.verbose) {
       var func = '<$method>';
       var args = arguments.toString();
-      func = _logColor ? '\x1B[1;30m$func\x1B[0m' : func;
+      func = _logColor ? '\x1B[1;36m$func\x1B[0m' : func;
       args = _logColor ? '\x1B[1;35m$args\x1B[0m' : args;
       print('[FBP] $func args: $args');
     }
@@ -414,7 +414,7 @@ final class FlutterBluePlusWinrt extends FlutterBluePlusPlatform {
     if (_logLevel == LogLevel.verbose) {
       var func = '($method)';
       var result = out.toString();
-      func = _logColor ? '\x1B[1;30m$func\x1B[0m' : func;
+      func = _logColor ? '\x1B[1;36m$func\x1B[0m' : func;
       result = _logColor ? '\x1B[1;33m$result\x1B[0m' : result;
       print('[FBP] $func result: $result');
     }
@@ -451,7 +451,7 @@ final class FlutterBluePlusWinrt extends FlutterBluePlusPlatform {
         'OnDiscoveredServices' => _prettyPrint(call.arguments),
         _ => call.arguments.toString(),
       };
-      func = _logColor ? '\x1B[1;30m$func\x1B[0m' : func;
+      func = _logColor ? '\x1B[1;36m$func\x1B[0m' : func;
       result = _logColor ? '\x1B[1;33m$result\x1B[0m' : result;
       print('[FBP] $func result: $result');
     }
