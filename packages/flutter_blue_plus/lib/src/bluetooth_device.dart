@@ -50,7 +50,7 @@ class BluetoothDevice {
     if (result == null) {
       return [];
     } else {
-      return result.services.map((p) => BluetoothService.fromProto(p)).where((p) => p.isPrimary).toList();
+      return _bmToPrimaryServices(result.services);
     }
   }
 
@@ -290,7 +290,7 @@ class BluetoothDevice {
       }
 
       // return primary services
-      result = response.services.map((p) => BluetoothService.fromProto(p)).where((p) => p.isPrimary).toList();
+      result = _bmToPrimaryServices(response.services);
 
       result = result;
     } finally {

@@ -110,18 +110,27 @@ bool _isBmCharacteristicMatch(BmBluetoothCharacteristic bmCharacteristic, Blueto
       bmCharacteristic.instanceId == characteristic.instanceId;
 }
 
+List<BluetoothService> _bmToPrimaryServices(List<BmBluetoothService> services) {
+  final primaryServices = <BluetoothService>[];
+  for (final service in services) {
+    if (service.primaryServiceUuid == null) {
+      primaryServices.add(BluetoothService.fromProto(service));
+    }
+  }
+  return primaryServices;
+}
+
 BmBluetoothCharacteristic? _findCharacteristic(
   BmDiscoverServicesResult? bmServices,
   BluetoothCharacteristic characteristic,
 ) {
   if (bmServices == null) return null;
-  final services = bmServices.services.where(
-    (s) => _isBmServiceMatch(s, characteristic),
-  );
-  for (var s in services) {
-    for (var c in s.characteristics) {
-      if (_isBmCharacteristicMatch(c, characteristic)) {
-        return c;
+  for (final service in bmServices.services) {
+    if (_isBmServiceMatch(service, characteristic)) {
+      for (final bmCharacteristic in service.characteristics) {
+        if (_isBmCharacteristicMatch(bmCharacteristic, characteristic)) {
+          return bmCharacteristic;
+        }
       }
     }
   }
@@ -129,18 +138,22 @@ BmBluetoothCharacteristic? _findCharacteristic(
 }
 
 List<BluetoothService> _findIncludedServices(BmDiscoverServicesResult? bmServices, Guid serviceUuid) {
-  return bmServices?.services
-          .where((s) => s.primaryServiceUuid == serviceUuid)
-          .map((s) => BluetoothService.fromProto(s))
-          .toList() ??
-      [];
+  if (bmServices == null) return [];
+  final includedServices = <BluetoothService>[];
+  for (final service in bmServices.services) {
+    if (service.primaryServiceUuid == serviceUuid) {
+      includedServices.add(BluetoothService.fromProto(service));
+    }
+  }
+  return includedServices;
 }
 
 BluetoothService? _findPrimaryService(BmDiscoverServicesResult? bmServices, Guid? primaryServiceUuid) {
-  if (primaryServiceUuid == null) return null;
-  final service = bmServices?.services._firstWhereOrNull(
-    (s) => s.serviceUuid == primaryServiceUuid,
-  );
-  return service != null ? BluetoothService.fromProto(service) : null;
+  if (bmServices == null || primaryServiceUuid == null) return null;
+  for (final service in bmServices.services) {
+    if (service.serviceUuid == primaryServiceUuid) {
+      return BluetoothService.fromProto(service);
+    }
+  }
+  return null;
 }
-
