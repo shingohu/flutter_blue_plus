@@ -462,11 +462,12 @@ class BmReadCharacteristicRequest {
   Map<dynamic, dynamic> toMap() {
     final Map<dynamic, dynamic> data = {};
     data['remote_id'] = remoteId.str;
-    data['primary_service_uuid'] = primaryServiceUuid?.str;
+    if (primaryServiceUuid != null) {
+      data['primary_service_uuid'] = primaryServiceUuid!.str;
+    }
     data['service_uuid'] = serviceUuid.str;
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
-    data.removeWhere((key, value) => value == null);
     return data;
   }
 }
@@ -529,12 +530,13 @@ class BmReadDescriptorRequest {
   Map<dynamic, dynamic> toMap() {
     final Map<dynamic, dynamic> data = {};
     data['remote_id'] = remoteId.str;
-    data['primary_service_uuid'] = primaryServiceUuid?.str;
+    if (primaryServiceUuid != null) {
+      data['primary_service_uuid'] = primaryServiceUuid!.str;
+    }
     data['service_uuid'] = serviceUuid.str;
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
     data['descriptor_uuid'] = descriptorUuid.str;
-    data.removeWhere((key, value) => value == null);
     return data;
   }
 }
@@ -568,14 +570,15 @@ class BmWriteCharacteristicRequest {
   Map<dynamic, dynamic> toMap() {
     final Map<dynamic, dynamic> data = {};
     data['remote_id'] = remoteId.str;
-    data['primary_service_uuid'] = primaryServiceUuid?.str;
+    if (primaryServiceUuid != null) {
+      data['primary_service_uuid'] = primaryServiceUuid!.str;
+    }
     data['service_uuid'] = serviceUuid.str;
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
     data['write_type'] = writeType.index;
     data['allow_long_write'] = allowLongWrite ? 1 : 0;
     data['value'] = (value is Uint8List) ? value : Uint8List.fromList(value);
-    data.removeWhere((key, value) => value == null);
     return data;
   }
 }
@@ -602,13 +605,14 @@ class BmWriteDescriptorRequest {
   Map<dynamic, dynamic> toMap() {
     final Map<dynamic, dynamic> data = {};
     data['remote_id'] = remoteId.str;
-    data['primary_service_uuid'] = primaryServiceUuid?.str;
+    if (primaryServiceUuid != null) {
+      data['primary_service_uuid'] = primaryServiceUuid!.str;
+    }
     data['service_uuid'] = serviceUuid.str;
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
     data['descriptor_uuid'] = descriptorUuid.str;
     data['value'] = (value is Uint8List) ? value : Uint8List.fromList(value);
-    data.removeWhere((key, value) => value == null);
     return data;
   }
 }
@@ -676,13 +680,14 @@ class BmSetNotifyValueRequest {
   Map<dynamic, dynamic> toMap() {
     final Map<dynamic, dynamic> data = {};
     data['remote_id'] = remoteId.str;
-    data['primary_service_uuid'] = primaryServiceUuid?.str;
+    if (primaryServiceUuid != null) {
+      data['primary_service_uuid'] = primaryServiceUuid!.str;
+    }
     data['service_uuid'] = serviceUuid.str;
     data['characteristic_uuid'] = characteristicUuid.str;
     data['instance_id'] = instanceId;
     data['force_indications'] = forceIndications;
     data['enable'] = enable;
-    data.removeWhere((key, value) => value == null);
     return data;
   }
 }
