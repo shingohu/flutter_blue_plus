@@ -893,12 +893,13 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     return matches;
 }
 
-- (NSNumber *)getInstanceId:(CBPeripheral *)peripheral characteristic:(CBCharacteristic *)characteristic
+- (NSNumber *)getInstanceId:(CBPeripheral *)peripheral
+              characteristic:(CBCharacteristic *)characteristic
+              primaryService:(CBService *)primaryService
 {
     CBService *service = characteristic.service;
     if (!service) return @(0);
 
-    CBService *primaryService = [self getPrimaryService:peripheral characteristic:characteristic];
     NSString *primaryServiceUuid = primaryService ? [primaryService.UUID uuidStr] : nil;
     NSString *serviceUuid = [service.UUID uuidStr];
     NSArray<CBService *> *services = [self getMatchingServices:peripheral
@@ -1662,7 +1663,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
         @"primary_service_uuid":        primaryService ? [primaryService.UUID uuidStr] : [NSNull null],
         @"service_uuid":                [characteristic.service.UUID uuidStr],
         @"characteristic_uuid":         [characteristic.UUID uuidStr],
-        @"instance_id":                 [self getInstanceId:peripheral characteristic:characteristic],
+        @"instance_id":                 [self getInstanceId:peripheral
+                                                   characteristic:characteristic
+                                                   primaryService:primaryService],
         @"value":                       characteristic.value ? characteristic.value : [NSNull null],
         @"success":                     error == nil ? @(1) : @(0),
         @"error_string":                error ? [error localizedDescription] : @"success",
@@ -1696,7 +1699,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
     NSString *primarySvcKey = primaryService != nil ? [primaryService.UUID uuidStr] : @"";
     NSString *serviceUuid = [characteristic.service.UUID uuidStr];
     NSString *characteristicUuid = [characteristic.UUID uuidStr];
-    NSNumber *instanceId = [self getInstanceId:peripheral characteristic:characteristic];
+    NSNumber *instanceId = [self getInstanceId:peripheral
+                                      characteristic:characteristic
+                                      primaryService:primaryService];
 
     // what data did we write?
     NSString *key = [NSString stringWithFormat:@"%@:%@:%@:%@:%@", 
@@ -1737,7 +1742,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
     }
 
     CBService *primaryService = [self getPrimaryService:peripheral characteristic:characteristic];
-    NSNumber *instanceId = [self getInstanceId:peripheral characteristic:characteristic];
+    NSNumber *instanceId = [self getInstanceId:peripheral
+                                      characteristic:characteristic
+                                      primaryService:primaryService];
 
     // Oddly iOS does not update the CCCD descriptors when didUpdateNotificationState is called. 
     // So instead of using characteristic.descriptors we have to manually recreate the
@@ -1788,7 +1795,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
     }
 
     CBService *primaryService = [self getPrimaryService:peripheral characteristic:descriptor.characteristic];
-    NSNumber *instanceId = [self getInstanceId:peripheral characteristic:descriptor.characteristic];
+    NSNumber *instanceId = [self getInstanceId:peripheral
+                                      characteristic:descriptor.characteristic
+                                      primaryService:primaryService];
 
     NSData* data = [self descriptorToData:descriptor];
     
@@ -1833,7 +1842,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
     NSString *remoteId = [peripheral.identifier UUIDString];
     NSString *serviceUuid = [descriptor.characteristic.service.UUID uuidStr];
     NSString *characteristicUuid = [descriptor.characteristic.UUID uuidStr];
-    NSNumber *instanceId = [self getInstanceId:peripheral characteristic:descriptor.characteristic];
+    NSNumber *instanceId = [self getInstanceId:peripheral
+                                      characteristic:descriptor.characteristic
+                                      primaryService:primaryService];
     NSString *primarySvcKey = primaryService != nil ? [primaryService.UUID uuidStr] : @"";
     NSString *descriptorUuid = [descriptor.UUID uuidStr];
 
@@ -2113,7 +2124,9 @@ didDiscoverCharacteristicsForService:(CBService *)service
                             characteristic:(CBCharacteristic *)characteristic
 {
     CBService *primaryService = [self getPrimaryService:peripheral characteristic:characteristic];
-    NSNumber *instanceId = [self getInstanceId:peripheral characteristic:characteristic];
+    NSNumber *instanceId = [self getInstanceId:peripheral
+                                      characteristic:characteristic
+                                      primaryService:primaryService];
 
     // descriptors
     NSMutableArray *descriptors = [NSMutableArray new];

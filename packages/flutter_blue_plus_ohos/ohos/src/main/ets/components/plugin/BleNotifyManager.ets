@@ -373,10 +373,12 @@ export default class BleNotifyManager {
    */
   onCharacteristicReceived(address: string, services: ble.GattService[],
     characteristic: ble.BLECharacteristic): void {
+    let serviceUuid: string = BleUtils.uuidStr(characteristic.serviceUuid);
+    let characteristicUuid: string = BleUtils.uuidStr(characteristic.characteristicUuid);
     // Generic Attribute service 0x1801
-    if (BleUtils.uuidStr(characteristic.serviceUuid) == '1801') {
+    if (serviceUuid == '1801') {
       // Service Changed 0x2A05
-      if (BleUtils.uuidStr(characteristic.characteristicUuid).toUpperCase() == '2A05') {
+      if (characteristicUuid == '2a05') {
         // 设备服务结构发生变化，清除服务缓存以强制 discoverServices 重新获取。
         // 否则 read/write/setNotifyValue 仍使用旧缓存，可能定位到已不存在的特征。
         this.plugin.gattCache.deviceServicesMap.delete(address);
@@ -390,8 +392,8 @@ export default class BleNotifyManager {
     if (primaryService != null) {
       response.set('primary_service_uuid', BleUtils.uuidStr(primaryService.serviceUuid));
     }
-    response.set('service_uuid', BleUtils.uuidStr(characteristic.serviceUuid));
-    response.set('characteristic_uuid', BleUtils.uuidStr(characteristic.characteristicUuid));
+    response.set('service_uuid', serviceUuid);
+    response.set('characteristic_uuid', characteristicUuid);
     let instanceId: number = BleGattShared.getInstanceId(characteristic, services);
     response.set('instance_id', instanceId);
     let characteristicValue: Uint8Array = new Uint8Array(characteristic.characteristicValue);
