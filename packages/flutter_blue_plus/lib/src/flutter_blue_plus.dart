@@ -177,7 +177,7 @@ class FlutterBluePlus {
     }
   }
 
-  /// Turn on Bluetooth (Android only),
+  /// Turn on Bluetooth (Android & OHOS only).
   static Future<void> turnOn({Duration timeout = const Duration(seconds: 60)}) async {
     var responseStream = FlutterBluePlusPlatform.instance.onTurnOnResponse;
 
@@ -238,7 +238,7 @@ class FlutterBluePlus {
     return _bmDevicesToDevices(r.devices);
   }
 
-  /// Retrieve a list of bonded devices (Android only)
+  /// Retrieve a list of bonded devices (Android & OHOS only)
   static Future<List<BluetoothDevice>> get bondedDevices async {
     var r = await _invokePlatform(() => FlutterBluePlusPlatform.instance.getBondedDevices(BmBondedDevicesRequest()));
     return _bmDevicesToDevices(r.devices);
@@ -483,8 +483,8 @@ class FlutterBluePlus {
     if (_initialized) {
       return;
     }
-
     _initialized = true;
+    WidgetsFlutterBinding.ensureInitialized();
 
     // fbp version
     FlutterBluePlusPlatform.log("[FBP] $_flutterBluePlusVersion");

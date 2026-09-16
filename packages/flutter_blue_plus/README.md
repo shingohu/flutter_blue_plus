@@ -742,7 +742,8 @@ Note: When functionality is unsupported on a platform, sensible defaults are ret
 | isScanningNow         ⚡| ✔️      | ✔️        | ✔️    | ✔️  | ✔️   | Is a scan currently running?                                |
 | connectedDevices      ⚡| ✔️      | ✔️        | ✔️    | ✔️  | ✔️   | List of devices connected to *your app*                     |
 | systemDevices        🔥| ✔️      | ✔️        | ✔️    | ❌   | ✔️   | List of devices connected to the system, even by other apps |
-| getPhySupport          | ✔️      | ❌        | ❌     | ❌   | ✔️   | Get supported bluetooth phy codings                         |
+| bondedDevices        🔥| ✔️      | ❌        | ❌     | ❌   | ✔️   | List of bonded devices                                      |
+| getPhySupport          | ✔️      | ❌        | ❌     | ❌   | ❌   | Get supported bluetooth phy codings                         |
 
 ### FlutterBluePlus Events API
 
@@ -778,12 +779,12 @@ Note: When functionality is unsupported on a platform, sensible defaults are ret
 | mtuNow                     ⚡| ✔️      | ✔️        | ❌     | ❌   | ✔️   | The current mtu value                                      |
 | readRssi                  🔥| ✔️      | ✔️        | ✔️    | ❌   | ✔️   | Read RSSI from a connected device                          |
 | requestMtu                🔥| ✔️      | ❌        | ❌     | ❌   | ✔️   | Request to change the MTU for the device                   |
-| requestConnectionPriority 🔥| ✔️      | ❌        | ❌     | ❌   | ✔️   | Request to update a high priority, low latency connection  |
-| bondState                 🌀| ✔️      | ❌        | ✔️    | ❌   | ✔️   | Stream of device bond state. Can be useful on Android      |
+| requestConnectionPriority 🔥| ✔️      | ❌        | ❌     | ❌   | ❌   | Request to update a high priority, low latency connection  |
+| bondState                 🌀| ✔️      | ❌        | ✔️    | ❌   | ✔️   | Stream of device bond state                                |
 | createBond                🔥| ✔️      | ❌        | ✔️    | ❌   | ✔️   | Force a system pairing dialogue to show, if needed         |
-| removeBond                  | ✔️      | ❌        | ✔️    | ❌   | ✔️   | Remove Bluetooth Bond of device                            |
-| setPreferredPhy             | ✔️      | ❌        | ❌     | ❌   | ✔️   | Set preferred RX and TX phy for connection and phy options |
-| clearGattCache              | ✔️      | ❌        | ❌     | ❌   | ✔️   | Clear android cache of service discovery results           |
+| removeBond                  | ✔️      | ❌        | ✔️    | ❌   | ❌   | Remove Bluetooth Bond of device                            |
+| setPreferredPhy             | ✔️      | ❌        | ❌     | ❌   | ❌   | Set preferred RX and TX phy for connection and phy options |
+| clearGattCache              | ✔️      | ❌        | ❌     | ❌   | ❌   | Clear android cache of service discovery results           |
 
 ### BluetoothCharacteristic API
 
@@ -1237,4 +1238,3 @@ If you just added flutter_blue_plus to your pubspec.yaml, a hot reload / hot res
 You need to fully stop your app and run again so that the native plugins are loaded.
 
 Also try `flutter clean`.
-

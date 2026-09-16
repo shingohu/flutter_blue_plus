@@ -34,7 +34,8 @@ class BluetoothOffScreen extends StatelessWidget {
         child: const Text('TURN ON'),
         onPressed: () async {
           try {
-            if (!kIsWeb && Platform.isAndroid) {
+            if (!kIsWeb &&
+                (Platform.isAndroid || Platform.operatingSystem == 'ohos')) {
               await FlutterBluePlus.turnOn();
             }
           } catch (e, backtrace) {
@@ -59,7 +60,9 @@ class BluetoothOffScreen extends StatelessWidget {
             children: <Widget>[
               buildBluetoothOffIcon(context),
               buildTitle(context),
-              if (!kIsWeb && Platform.isAndroid) buildTurnOnButton(context),
+              if (!kIsWeb &&
+                  (Platform.isAndroid || Platform.operatingSystem == 'ohos'))
+                buildTurnOnButton(context),
             ],
           ),
         ),

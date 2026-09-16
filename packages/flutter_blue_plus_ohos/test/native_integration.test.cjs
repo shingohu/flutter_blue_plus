@@ -26,6 +26,7 @@ function loadManagers() {
     '@kit.BasicServicesKit': { deviceInfo: { sdkApiVersion: 20 } },
     '@kit.PerformanceAnalysisKit': {
       hilog: { LogLevel: { DEBUG: 3, INFO: 4, WARN: 5, ERROR: 6, FATAL: 7 },
+        isLoggable: () => true,
         debug: noop, info: noop, warn: noop, error: noop, fatal: noop },
     },
     '@ohos.bluetooth.access': { default: { getState: () => 2, BluetoothState: { STATE_ON: 2 } } },

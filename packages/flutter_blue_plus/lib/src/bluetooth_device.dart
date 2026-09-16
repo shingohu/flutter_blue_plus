@@ -99,7 +99,7 @@ class BluetoothDevice {
 
   /// Establishes a connection to the Bluetooth Device.
   ///   [timeout] if timeout occurs, cancel the connection request and throw exception
-  ///   [mtu] Android only. Request a larger mtu right after connection, if set.
+  ///   [mtu] Android & OHOS only. Request a larger mtu right after connection, if set.
   ///   [autoConnect] reconnect whenever the device is found
   ///      - if true, this function always returns immediately.
   ///      - you must listen to `connectionState` to know when connection occurs.
@@ -186,7 +186,7 @@ class BluetoothDevice {
     }
 
     // request larger mtu
-    if (!kIsWeb && Platform.isAndroid && isConnected && mtu != null) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.operatingSystem == 'ohos') && isConnected && mtu != null) {
       await requestMtu(mtu);
     }
   }
@@ -398,13 +398,13 @@ class BluetoothDevice {
     return rssi;
   }
 
-  /// Request to change MTU (Android Only)
+  /// Request to change MTU (Android & OHOS only)
   ///  - returns new MTU
   ///  - [predelay] adds delay to avoid race conditions on some peripherals. see comments below.
   Future<int> requestMtu(int desiredMtu,
       {double predelay = 0.35, Duration timeout = const Duration(seconds: 15)}) async {
-    // check android
-    if (kIsWeb || !Platform.isAndroid) {
+    // check platform
+    if (kIsWeb || (!Platform.isAndroid && Platform.operatingSystem != 'ohos')) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "requestMtu", FbpErrorCode.androidOnly.index, "android-only");
     }
 
@@ -521,11 +521,12 @@ class BluetoothDevice {
     await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.setPreferredPhy(request));
   }
 
-  /// Force the bonding popup to show now (Android Only)
+  /// Force the bonding popup to show now (Android & OHOS only)
   /// Note! calling this is usually not necessary!! The platform does it automatically.
+  /// On OHOS, [pin] is ignored and pairing is handled by the system popup.
   Future<void> createBond({Duration timeout = const Duration(seconds: 90), Uint8List? pin}) async {
-    // check android
-    if (kIsWeb || !Platform.isAndroid) {
+    // check platform
+    if (kIsWeb || (!Platform.isAndroid && Platform.operatingSystem != 'ohos')) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "createBond", FbpErrorCode.androidOnly.index, "android-only");
     }
 
@@ -618,10 +619,10 @@ class BluetoothDevice {
         () => FlutterBluePlusPlatform.instance.clearGattCache(BmClearGattCacheRequest(remoteId: remoteId)));
   }
 
-  /// Get the current bondState of the device (Android Only)
+  /// Get the current bondState of the device (Android & OHOS only)
   Stream<BluetoothBondState> get bondState async* {
-    // check android
-    if (kIsWeb || !Platform.isAndroid) {
+    // check platform
+    if (kIsWeb || (!Platform.isAndroid && Platform.operatingSystem != 'ohos')) {
       throw FlutterBluePlusException(ErrorPlatform.fbp, "bondState", FbpErrorCode.androidOnly.index, "android-only");
     }
 
@@ -641,7 +642,8 @@ class BluetoothDevice {
         .newStreamWithInitialValue(_bmToBondState(FlutterBluePlus._bondStates[remoteId]!.bondState));
   }
 
-  /// Get the previous bondState of the device (Android Only)
+  /// Get the previous bondState of the device (Android only).
+  /// OHOS does not expose the previous bond state, so this is always null there.
   BluetoothBondState? get prevBondState {
     var b = FlutterBluePlus._bondStates[remoteId]?.prevState;
     return b != null ? _bmToBondState(b) : null;

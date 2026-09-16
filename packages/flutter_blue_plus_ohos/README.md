@@ -208,6 +208,7 @@ for (var d in devs) {
 | isScanningNow  | :white_check_mark: | :white_check_mark: | :white_check_mark: | Is a scan currently running?                               |
 | connectedDevices  | :white_check_mark: | :white_check_mark: | :white_check_mark: | List of devices connected to *your app*                    |
 | systemDevices          | :white_check_mark: | :white_check_mark: | :white_check_mark: | List of devices connected to the system, even by other apps|
+| bondedDevices          | :white_check_mark: |                    | :white_check_mark: | List of bonded devices                                     |
 | getPhySupport          | :white_check_mark: |                    |  | Get supported bluetooth phy codings                        |
 
 ### FlutterBluePlus Events API
@@ -223,7 +224,7 @@ for (var d in devs) {
 | events.onCharacteristicWritten  🌀 | :white_check_mark: | :white_check_mark: | :white_check_mark: | Stream of characteristic value writes of *all devices* |
 | events.onDescriptorRead         🌀 | :white_check_mark: | :white_check_mark: | :white_check_mark: | Stream of descriptor value reads of *all devices*      |
 | events.onDescriptorWritten      🌀 | :white_check_mark: | :white_check_mark: | :white_check_mark: | Stream of descriptor value writes of *all devices*     |
-| events.onBondStateChanged       🌀 | :white_check_mark: |                    |                    | Stream of android bond state changes of *all devices*  |
+| events.onBondStateChanged       🌀 | :white_check_mark: |                    | :white_check_mark: | Stream of bond state changes of *all devices*          |
 | events.onNameChanged            🌀 |                    | :white_check_mark: |                    | Stream of iOS name changes of *all devices*            |
 
 
@@ -241,13 +242,13 @@ for (var d in devs) {
 | discoverServices          | :white_check_mark: | :white_check_mark: | :white_check_mark: | Discover services                                          |
 | servicesList            ⚡ | :white_check_mark: | :white_check_mark: | :white_check_mark: | The current list of available services                     |
 | onServicesReset        🌀  | :white_check_mark: | :white_check_mark: |                    | The services changed & must be rediscovered                |
-| mtu                    🌀  | :white_check_mark: | :white_check_mark: |                    | Stream of current mtu value + changes                      |
-| mtuNow                  ⚡ | :white_check_mark: | :white_check_mark: |                    | The current mtu value                                      |
+| mtu                    🌀  | :white_check_mark: | :white_check_mark: | :white_check_mark: | Stream of current mtu value + changes                      |
+| mtuNow                  ⚡ | :white_check_mark: | :white_check_mark: | :white_check_mark: | The current mtu value                                      |
 | readRssi                  | :white_check_mark: | :white_check_mark: | :white_check_mark: | Read RSSI from a connected device                          |
 | requestMtu                | :white_check_mark: |                    | :white_check_mark: | Request to change the MTU for the device                   |
 | requestConnectionPriority | :white_check_mark: |                    |                    | Request to update a high priority, low latency connection  |
-| bondState              🌀  | :white_check_mark: |                    |                    | Stream of device bond state. Can be useful on Android      |
-| createBond                | :white_check_mark: |                    |                    | Force a system pairing dialogue to show, if needed         |
+| bondState              🌀  | :white_check_mark: |                    | :white_check_mark: | Stream of device bond state; OHOS has no previous state    |
+| createBond                | :white_check_mark: |                    | :white_check_mark: | Show the system pairing dialog; OHOS ignores the pin       |
 | removeBond                | :white_check_mark: |                    |                    | Remove Bluetooth Bond of device                            |
 | setPreferredPhy           | :white_check_mark: |                    |                    | Set preferred RX and TX phy for connection and phy options |
 | clearGattCache            | :white_check_mark: |                    |                    | Clear android cache of service discovery results           |
@@ -282,4 +283,3 @@ for (var d in devs) {
 -  DevEco Studio: 6.0.1
 
 - sdk：6.0.1(21)
-
