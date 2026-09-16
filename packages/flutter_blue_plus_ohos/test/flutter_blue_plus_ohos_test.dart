@@ -31,8 +31,8 @@ const _channelName = 'flutter_blue_plus/methods';
 //  * outgoing: Flutter invokes native methods (clearGattCache, connect, ...).
 //    We intercept these via setMockMethodCallHandler and record name + args.
 //  * incoming: native pushes On* events back to Flutter. The plugin registers
-//    a handler via setMethodCallHandler in its constructor and we drive those
-//    events with handlePlatformMessage.
+//    a handler via setMethodCallHandler on its first platform call and we drive
+//    those events with handlePlatformMessage.
 
 Map<String, dynamic> _invokeLog = {};
 dynamic Function(MethodCall call)? _invokeHandler;
@@ -85,6 +85,49 @@ void main() {
     _mockMethods(testHandler);
     return plugin;
   }
+
+  test('registers the method call handler lazily and only once', () async {
+    const channel = MethodChannel(_channelName);
+    const codec = StandardMethodCodec();
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var constructorHandlerCalls = 0;
+    var replacementHandlerCalls = 0;
+
+    _mockMethods((call) => call.method == 'flutterRestart' ? 0 : true);
+    messenger.setMessageHandler(channel.name, (message) async {
+      constructorHandlerCalls++;
+      return codec.encodeSuccessEnvelope(null);
+    });
+    addTearDown(() => messenger.setMessageHandler(channel.name, null));
+
+    final plugin = _newPlugin();
+    await messenger.handlePlatformMessage(
+      channel.name,
+      codec.encodeMethodCall(const MethodCall('UnknownCallback')),
+      null,
+    );
+    expect(constructorHandlerCalls, 1);
+
+    await plugin.isSupported(BmIsSupportedRequest());
+    await messenger.handlePlatformMessage(
+      channel.name,
+      codec.encodeMethodCall(const MethodCall('UnknownCallback')),
+      null,
+    );
+    expect(constructorHandlerCalls, 1);
+
+    messenger.setMessageHandler(channel.name, (message) async {
+      replacementHandlerCalls++;
+      return codec.encodeSuccessEnvelope(null);
+    });
+    await plugin.isSupported(BmIsSupportedRequest());
+    await messenger.handlePlatformMessage(
+      channel.name,
+      codec.encodeMethodCall(const MethodCall('UnknownCallback')),
+      null,
+    );
+    expect(replacementHandlerCalls, 1);
+  });
 
   group('registerWith', () {
     test('sets the platform instance to FlutterBluePlusOhos', () {

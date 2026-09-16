@@ -9,11 +9,8 @@ final class FlutterBluePlusDarwin extends FlutterBluePlusPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('flutter_blue_plus/methods');
 
-  FlutterBluePlusDarwin() {
-    methodChannel.setMethodCallHandler(_methodCallHandler);
-  }
-
   var _didRestart = false;
+  var _isMethodCallHandlerRegistered = false;
   var _logLevel = LogLevel.none;
   var _logColor = true;
 
@@ -290,6 +287,12 @@ final class FlutterBluePlusDarwin extends FlutterBluePlusPlatform {
     // restart platform
     if (!_didRestart && method != "setOptions" && method != "setLogLevel") {
       await _flutterRestart();
+    }
+
+    // The binary messenger may not be initialized when registerWith constructs this instance.
+    if (!_isMethodCallHandlerRegistered) {
+      methodChannel.setMethodCallHandler(_methodCallHandler);
+      _isMethodCallHandlerRegistered = true;
     }
 
     // log args
