@@ -1,3 +1,9 @@
+## Unreleased
+* **[Fix]** Validate the current GATT before data callbacks access caches and again before queued UI events are delivered.
+* **[Fix]** Ignore duplicate connected callbacks to preserve the connection and negotiated MTU (#1121).
+* **[Fix]** Ignore callbacks from obsolete GATT clients without changing the current connection state (#1121).
+* **[Fix]** Avoid crashes when reading adapter or device names without `BLUETOOTH_CONNECT` permission (#1340).
+
 ## 9.0.3
 * **[Android]** rename `com.lib.flutter_blue_plus` to `com.jmx.flutter_blue_plus`
 

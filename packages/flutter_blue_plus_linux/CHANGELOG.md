@@ -1,3 +1,6 @@
+## Unreleased
+* Share concurrent BlueZ initialization and retry after failure without duplicate listeners.
+
 ## 9.0.1
 * **[Release]** version bump to publish the updated `flutter_blue_plus_platform_interface: ^9.0.0` dependency
 

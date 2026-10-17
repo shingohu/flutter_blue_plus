@@ -19,6 +19,7 @@ import { ble, connection } from '@kit.ConnectivityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import BleUtils from './BleUtils';
+import { GattSession } from './GattCacheHolder';
 import BleGattShared, { ChrFound, GattWriteContext, GattWriteTarget } from './BleGattShared';
 import FlutterBluePlusOhosPlugin from './FlutterBluePlusOhosPlugin';
 
@@ -79,27 +80,28 @@ export default class BleCharacteristicManager {
       return;
     }
     // 按设备串行执行 GATT 操作，避免 OHOS BLE 栈 2900011 "operation is busy" 错误。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
+      const revision = session.servicesRevision;
       // 记录当前配对状态用于诊断；
       // 无需特殊处理 BONDING（鉴权失败由 readCharacteristicWithBondRetry 兜底重试）。
       BleUtils.log(hilog.LogLevel.DEBUG, `readCharacteristic: bond state: ${connection.getPairState(remoteId)}`);
       // 优先使用 deviceServicesMap 缓存，cache miss 时才调 getServices()，
       // 对齐 writeCharacteristic 与 BleNotifyManager 的缓存策略。
-      let services: ble.GattService[] | undefined =
-        this.plugin.gattCache.deviceServicesMap.get(remoteId);
-      if (services == null) {
-        services = await gatt.getServices();
-        this.plugin.gattCache.deviceServicesMap.set(remoteId, services);
-      }
+      let services: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+      session.assertCurrent(revision);
       BleUtils.log(hilog.LogLevel.DEBUG, `readCharacteristic: found ${services.length} services`);
       let characteristic: ble.BLECharacteristic | null =
         await this.resolveReadableCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
           services, result);
+      session.assertCurrent(revision);
       if (characteristic == null) {
         return;
       }
       let readCharacteristic: ble.BLECharacteristic | null = await this.readCharacteristicWithBondRetry(gatt,
-        characteristic, remoteId, result);
+        characteristic, remoteId, result, session, revision);
+      session.assertCurrent(revision);
       if (readCharacteristic == null) {
         // 重试已通过 result 回传错误
         return;
@@ -107,7 +109,7 @@ export default class BleCharacteristicManager {
       // readCharacteristic 已判空，赋给非空变量显式收窄类型（避免 as 强转）。
       let readChar: ble.BLECharacteristic = readCharacteristic;
       this.emitReadResult(remoteId, services, readChar, result);
-    });
+    }, session);
   }
 
   /**
@@ -155,7 +157,6 @@ export default class BleCharacteristicManager {
    */
   private emitReadResult(remoteId: string, services: ble.GattService[],
     readCharacteristic: ble.BLECharacteristic, result: MethodResult): void {
-    this.plugin.gattCache.deviceServicesMap.set(remoteId, services);
     this.plugin.notifyManager.onCharacteristicReceived(remoteId, services, readCharacteristic);
     BleUtils.log(hilog.LogLevel.DEBUG, 'readCharacteristic: operation completed successfully');
     result.success(true);
@@ -168,13 +169,16 @@ export default class BleCharacteristicManager {
    */
   private async readCharacteristicWithBondRetry(gatt: ble.GattClientDevice,
     characteristic: ble.BLECharacteristic, remoteId: string,
-    result: MethodResult): Promise<ble.BLECharacteristic | null> {
+    result: MethodResult, session: GattSession, revision: number): Promise<ble.BLECharacteristic | null> {
     try {
       BleUtils.log(hilog.LogLevel.DEBUG, 'readCharacteristic: calling gatt.readCharacteristicValue()');
+      session.assertCurrent(revision);
       let readCharacteristic = await gatt.readCharacteristicValue(characteristic);
+      session.assertCurrent(revision);
       BleUtils.log(hilog.LogLevel.DEBUG, 'readCharacteristic: gatt.readCharacteristicValue() succeeded');
       return readCharacteristic;
     } catch (e) {
+      session.assertCurrent(revision);
       let error = e as BusinessError;
       BleUtils.log(hilog.LogLevel.ERROR,
         `readCharacteristic failed: gatt.readCharacteristicValue() threw error: ${JSON.stringify(e)}`);
@@ -182,7 +186,7 @@ export default class BleCharacteristicManager {
       // 这是 OHOS 平台差异：Android/iOS 遇到鉴权错误时系统自动弹出配对请求，
       // OHOS 需要应用层手动调 pairDevice()
       if (error.code === 2901006 || error.code === 2901007) {
-        return await this.retryReadAfterBond(gatt, characteristic, remoteId, error, result);
+        return await this.retryReadAfterBond(gatt, characteristic, remoteId, error, result, session, revision);
       }
       // 其他错误直接报错，不重试，对齐 Android/iOS 行为
       result.error('readCharacteristic',
@@ -198,18 +202,22 @@ export default class BleCharacteristicManager {
    */
   private async retryReadAfterBond(gatt: ble.GattClientDevice, characteristic: ble.BLECharacteristic,
     remoteId: string, error: BusinessError,
-    result: MethodResult): Promise<ble.BLECharacteristic | null> {
+    result: MethodResult, session: GattSession, revision: number): Promise<ble.BLECharacteristic | null> {
     BleUtils.log(hilog.LogLevel.ERROR,
       `readCharacteristic failed: Connection not authorized (${error.code}). Attempting to bond device...`);
     try {
       // 鉴权失败(2901006)/未授权(2901007)补救：先 pairDevice 发起绑定，
       // 绑定成功(BOND_STATE_BONDED)后立即重读一次。
+      session.assertCurrent(revision);
       await connection.pairDevice(remoteId);
+      session.assertCurrent(revision);
       BleUtils.log(hilog.LogLevel.DEBUG, 'readCharacteristic: Device bonding initiated');
       let newBondState = connection.getPairState(remoteId);
       if (newBondState == connection.BondState.BOND_STATE_BONDED) {
         BleUtils.log(hilog.LogLevel.DEBUG, 'readCharacteristic: Device bonded successfully. Retrying read...');
+        session.assertCurrent(revision);
         let readCharacteristic = await gatt.readCharacteristicValue(characteristic);
+        session.assertCurrent(revision);
         BleUtils.log(hilog.LogLevel.DEBUG,
           'readCharacteristic: gatt.readCharacteristicValue() succeeded after bonding');
         return readCharacteristic;
@@ -221,6 +229,7 @@ export default class BleCharacteristicManager {
         { errorCode: error.code, errorDetails: JSON.stringify(error) });
       return null;
     } catch (bondError) {
+      session.assertCurrent(revision);
       BleUtils.log(hilog.LogLevel.ERROR,
         `readCharacteristic failed: Device bonding failed: ${JSON.stringify(bondError)}`);
       result.error('readCharacteristic',
@@ -275,24 +284,20 @@ export default class BleCharacteristicManager {
     }
     let target = new GattWriteTarget(remoteId, primaryServiceUuid, serviceUuid, characteristicUuid, instanceId);
     // 按设备串行执行 GATT 操作，避免 OHOS BLE 栈 2900011 "operation is busy" 错误。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
+      const revision = session.servicesRevision;
       // 优先使用 deviceServicesMap 缓存，减少与 BLE 栈的异步交互次数。
       // OHOS 的 gatt.getServices() 是异步操作，每次调用可能增加与其它 GATT 操作的并发冲突概率，
       // 导致 writeCharacteristicValue 间歇性返回 2900099。
       // 对比 Android：gatt.getServices() 是同步的本地缓存读取，不会产生此问题。
       // 缓存策略对齐 BleNotifyManager 的 BLECharacteristicChange 回调：cache miss 时才调 getServices()。
-      let gattServices: ble.GattService[] | undefined =
-        this.plugin.gattCache.deviceServicesMap.get(remoteId);
-      if (gattServices == null) {
-        gattServices = await gatt.getServices();
-        BleUtils.log(hilog.LogLevel.DEBUG, `writeCharacteristic: getServices() returned ${gattServices.length} services`);
-        this.plugin.gattCache.deviceServicesMap.set(remoteId, gattServices);
-      } else {
-        BleUtils.log(hilog.LogLevel.DEBUG,
-          `writeCharacteristic: using cached services (${gattServices.length} services)`);
-      }
+      let gattServices: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+      session.assertCurrent(revision);
       let characteristic: ble.BLECharacteristic | null =
         await this.resolveWriteCharacteristic(target, gattServices, result);
+      session.assertCurrent(revision);
       if (characteristic == null) {
         return;
       }
@@ -302,9 +307,10 @@ export default class BleCharacteristicManager {
       if (!this.validateWritePayload(value, writeTypeInt, allowLongWrite, remoteId, result)) {
         return;
       }
-      let ctx = new GattWriteContext(gatt, characteristic, gattServices, target, result);
+      let ctx = new GattWriteContext(gatt, characteristic, gattServices, target, result, session);
       await this.executeWriteCharacteristic(ctx, value, writeType);
-    });
+      session.assertCurrent(revision);
+    }, session);
   }
 
   /**
@@ -398,10 +404,13 @@ export default class BleCharacteristicManager {
     let writeValue: ArrayBuffer = BleUtils.typedArrayToBuffer(value);
     ctx.characteristic.characteristicValue = writeValue;
     try {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       await ctx.gatt.writeCharacteristicValue(ctx.characteristic, writeType);
+      ctx.session.assertCurrent(ctx.servicesRevision);
     } catch (e) {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       let businessError = e as BusinessError;
-      // 写入失败：清理刚缓存的写入值，避免 writeChrMap 残留（clearForDevice 不清此 Map）。
+      // 写入失败：清理刚缓存的写入值，避免 writeChrMap 残留。
       this.plugin.gattCache.writeChrMap.delete(key);
       BleUtils.log(hilog.LogLevel.ERROR,
         `writeCharacteristic failed: errorCode=${businessError.code}, errmessage=${businessError.message}`);

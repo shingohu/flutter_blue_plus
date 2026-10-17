@@ -10,6 +10,7 @@ final class FlutterBluePlusAndroid extends FlutterBluePlusPlatform {
   final methodChannel = const MethodChannel('flutter_blue_plus/methods');
 
   var _didRestart = false;
+  Future<void>? _restartFuture;
   var _isMethodCallHandlerRegistered = false;
   var _logLevel = LogLevel.none;
   var _logColor = true;
@@ -423,7 +424,7 @@ final class FlutterBluePlusAndroid extends FlutterBluePlusPlatform {
   ]) async {
     // restart platform
     if (!_didRestart && method != "setLogLevel") {
-      await _flutterRestart();
+      await (_restartFuture ??= _restartOnce());
     }
 
     // The binary messenger may not be initialized when registerWith constructs this instance.
@@ -454,6 +455,15 @@ final class FlutterBluePlusAndroid extends FlutterBluePlusPlatform {
     }
 
     return out;
+  }
+
+  Future<void> _restartOnce() async {
+    try {
+      await _flutterRestart();
+    } catch (_) {
+      _restartFuture = null;
+      rethrow;
+    }
   }
 
   Future<void> _flutterRestart() async {

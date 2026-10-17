@@ -1,3 +1,8 @@
+## Unreleased
+* **[Performance]** Poll for MTU changes at 10Hz after connecting and reduce to 1Hz once all values settle; stop when all devices disconnect (#1339).
+* **[Fix]** Keep observing settled connections so delayed MTU negotiation still updates Dart's MTU cache.
+* **[Fix]** Continue service discovery past UUIDs restricted by CoreBluetooth, including Matter attributes (#1344).
+
 ## 9.0.1
 * **[Release]** version bump to publish the updated `flutter_blue_plus_platform_interface: ^9.0.0` dependency
 

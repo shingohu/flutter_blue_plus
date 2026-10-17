@@ -18,6 +18,30 @@ import { ble } from '@kit.ConnectivityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import BleUtils from './BleUtils';
 
+export class GattSession {
+  public active: boolean = true;
+  public notificationLoad: Promise<ble.GattService[]> | undefined = undefined;
+  public servicesRevision: number = 0;
+  public remoteId: string;
+  public gatt: ble.GattClientDevice;
+  private connected: Map<string, ble.GattClientDevice>;
+  constructor(remoteId: string, gatt: ble.GattClientDevice,
+    connected: Map<string, ble.GattClientDevice>) {
+    this.remoteId = remoteId;
+    this.gatt = gatt;
+    this.connected = connected;
+  }
+
+  assertCurrent(revision?: number): void {
+    if (!this.active || this.connected.get(this.remoteId) !== this.gatt) {
+      throw new Error('GATT connection changed; discard the obsolete operation');
+    }
+    if (revision !== undefined && revision !== this.servicesRevision) {
+      throw new Error('Services changed; discard the obsolete operation');
+    }
+  }
+}
+
 /**
  * GATT 共享缓存层。
  *
@@ -52,25 +76,99 @@ export default class GattCacheHolder {
    * 不同设备的操作互不阻塞。
    */
   public gattLockMap: Map<string, Promise<void>> = new Map();
+  private sessions: Map<string, GattSession> = new Map();
+
+  sessionFor(remoteId: string, gatt: ble.GattClientDevice,
+    connected: Map<string, ble.GattClientDevice>): GattSession {
+    let session = this.sessions.get(remoteId);
+    if (session == null || session.gatt !== gatt || !session.active) {
+      if (session != null) session.active = false;
+      // A new GATT object belongs to a new connection. Old queued operations
+      // keep their own tails and are fenced by the invalidated session.
+      if (session != null && session.gatt !== gatt) {
+        this.clearForDevice(remoteId);
+        this.gattLockMap.delete(remoteId);
+      }
+      session = new GattSession(remoteId, gatt, connected);
+      this.sessions.set(remoteId, session);
+    }
+    session.assertCurrent();
+    return session;
+  }
+
+  // Call only while holding runGatt. Never await a queued notification load
+  // here: it may be waiting behind the caller itself.
+  async servicesFor(session: GattSession): Promise<ble.GattService[]> {
+    session.assertCurrent();
+    let services = this.deviceServicesMap.get(session.remoteId);
+    if (services == null) {
+      const revision = session.servicesRevision;
+      services = await session.gatt.getServices();
+      session.assertCurrent();
+      if (revision !== session.servicesRevision) throw new Error('Services changed during discovery');
+      this.deviceServicesMap.set(session.remoteId, services);
+    }
+    return services;
+  }
+
+  async notificationServices(session: GattSession): Promise<ble.GattService[]> {
+    session.assertCurrent();
+    if (session.notificationLoad == null) {
+      session.notificationLoad = this.runGatt(session.remoteId, () => this.servicesFor(session), session);
+    }
+    const pending = session.notificationLoad;
+    try {
+      return await pending;
+    } finally {
+      if (session.notificationLoad === pending) session.notificationLoad = undefined;
+    }
+  }
 
   /**
    * 清理指定设备的缓存：mtuMap + deviceServicesMap。
    *
-   * writeChrMap/writeDescMap 的 key 为复合前缀（含 UUID/instanceId），无法按 deviceId 精确删除，
-   * 故仅在 clearAll 全量清理；单设备断开时这两个写入缓存残留无害
-   * （下次写入会覆盖，且断开后不再回传）。
+   * 同时失效连接代次并按完整设备前缀清理尚未完成的写入。
    * @param remoteId - 设备 ID
    */
+  invalidateServices(remoteId: string): void {
+    const session = this.sessions.get(remoteId);
+    if (session != null) {
+      session.servicesRevision++;
+      // Notifications after the reset must load the new revision, rather than
+      // join a query whose result has already become obsolete.
+      session.notificationLoad = undefined;
+    }
+    this.deviceServicesMap.delete(remoteId);
+    this.clearWritesForDevice(remoteId);
+  }
+
   clearForDevice(remoteId: string): void {
+    let session = this.sessions.get(remoteId);
+    if (session != null) session.active = false;
+    if (!this.gattLockMap.has(remoteId)) this.sessions.delete(remoteId);
     this.mtuMap.delete(remoteId);
     this.deviceServicesMap.delete(remoteId);
-    // 不删除 gattLockMap：若此时有 GATT 操作正在排队等待（已 await prev 但未完成），
-    // 删除条目会导致后续新操作的 runGatt 找不到前一个 Promise 而立即执行，造成并发。
-    // runGatt 在队尾操作完成后移除条目。
+    this.clearWritesForDevice(remoteId);
+    // 不删除 gattLockMap：已排队操作必须保留自己的队尾，不能绕过串行锁。
+    // runGatt 在队尾完成后移除条目，新连接通过 sessionFor 隔离旧链。
+  }
+
+  private clearWritesForDevice(remoteId: string): void {
+    const prefix = remoteId + ':';
+    this.writeChrMap.forEach((_value, key) => {
+      if (key.startsWith(prefix)) this.writeChrMap.delete(key);
+    });
+    this.writeDescMap.forEach((_value, key) => {
+      if (key.startsWith(prefix)) this.writeDescMap.delete(key);
+    });
   }
 
   /** 清空全部缓存。disconnectAllDevices / cleanup 全量清理时调用。 */
   clearAll(): void {
+    this.sessions.forEach((session, remoteId) => {
+      session.active = false;
+      if (!this.gattLockMap.has(remoteId)) this.sessions.delete(remoteId);
+    });
     this.mtuMap.clear();
     this.writeChrMap.clear();
     this.writeDescMap.clear();
@@ -90,7 +188,7 @@ export default class GattCacheHolder {
    * @param op - 待执行的异步操作（含 result 回调）
    * @returns op 的返回值
    */
-  async runGatt<T>(remoteId: string, op: () => Promise<T>): Promise<T> {
+  async runGatt<T>(remoteId: string, op: () => Promise<T>, session?: GattSession): Promise<T> {
     let prev: Promise<void> = this.gattLockMap.get(remoteId) ?? Promise.resolve();
     let resolve: () => void = () => {};
     let next: Promise<void> = new Promise<void>(r => { resolve = r; });
@@ -100,11 +198,16 @@ export default class GattCacheHolder {
     await prev;
     BleUtils.log(hilog.LogLevel.DEBUG, `runGatt: starting GATT op for ${remoteId}`);
     try {
-      return await op();
+      session?.assertCurrent();
+      const value = await op();
+      session?.assertCurrent();
+      return value;
     } finally {
       resolve();
       if (this.gattLockMap.get(remoteId) === next) {
         this.gattLockMap.delete(remoteId);
+        const current = this.sessions.get(remoteId);
+        if (current != null && !current.active) this.sessions.delete(remoteId);
       }
       BleUtils.log(hilog.LogLevel.DEBUG, `runGatt: completed GATT op for ${remoteId}`);
     }

@@ -1,0 +1,88 @@
+// Run as an AOT executable. Reads the real mutex source at runtime and checks
+// its algorithm through a generated import made by run_benchmarks.py.
+import 'dart:async';
+import 'dart:io';
+import 'mutex.dart';
+import 'old_mutex.dart' as old_mutex;
+import 'old_guid.dart' as old;
+import 'new_guid.dart' as current;
+
+int sink = 0;
+Future<int> queueTime(int count, bool fifo) async {
+  final mutex = AuditMutex();
+  final oldMutex = old_mutex.AuditMutex();
+  final watch = Stopwatch()..start();
+  final work = List.generate(count, (_) async {
+    if (fifo) {
+      await mutex.take();
+      sink++;
+      mutex.give();
+    } else {
+      await oldMutex.take();
+      sink++;
+      oldMutex.give();
+    }
+  });
+  await Future.wait(work);
+  return watch.elapsedMicroseconds;
+}
+
+int median(void Function() run) {
+  for (var i = 0; i < 2; i++) { run(); }
+  final times = List.generate(7, (_) {
+    final w = Stopwatch()..start(); run(); return w.elapsedMicroseconds;
+  })..sort();
+  return times[3];
+}
+
+Future<void> main() async {
+  print('Dart ${Platform.version}');
+  for (final n in [100, 500, 1000, 2000]) {
+    await queueTime(n, false); await queueTime(n, true);
+    final broadcast = <int>[], fifo = <int>[];
+    for (var i = 0; i < 7; i++) {
+      broadcast.add(await queueTime(n, false));
+      fifo.add(await queueTime(n, true));
+    }
+    broadcast.sort(); fifo.sort();
+    print('AUDIT queue n=$n broadcastUs=${broadcast[3]} fifoUs=${fifo[3]} '
+      'theoreticalBroadcastWakeups=${n * (n - 1) ~/ 2}');
+  }
+  for (final full in [false, true]) {
+    final strings = List.generate(256, (i) => full
+      ? '${(0x12345600 + i).toRadixString(16)}-1234-5678-9abc-123456789abc'
+      : (0x1800 + i).toRadixString(16));
+    final a = strings.map(old.Guid.new).toList(), b = strings.map(current.Guid.new).toList();
+    final a2 = strings.map(old.Guid.new).toList(), b2 = strings.map(current.Guid.new).toList();
+    for (final op in ['parse', 'str128', 'hash', 'equal']) {
+      int baseline = median(() {
+        var sum = 0;
+        for (var j = 0; j < 100000; j++) {
+          final i = j & 255;
+          switch (op) {
+            case 'parse': sum += old.Guid(strings[i]).bytes[0];
+            case 'str128': sum += a[i].str128.codeUnitAt(7);
+            case 'hash': sum ^= a[i].hashCode;
+            case 'equal': sum += a[i] == a2[(i + (j & 1)) & 255] ? 1 : 0;
+          }
+        }
+        sink ^= sum;
+      });
+      int optimized = median(() {
+        var sum = 0;
+        for (var j = 0; j < 100000; j++) {
+          final i = j & 255;
+          switch (op) {
+            case 'parse': sum += current.Guid(strings[i]).bytes[0];
+            case 'str128': sum += b[i].str128.codeUnitAt(7);
+            case 'hash': sum ^= b[i].hashCode;
+            case 'equal': sum += b[i] == b2[(i + (j & 1)) & 255] ? 1 : 0;
+          }
+        }
+        sink ^= sum;
+      });
+      print('AUDIT guid ${full ? 'full' : 'short'} $op per100000 baselineUs=$baseline currentUs=$optimized');
+    }
+  }
+  print('sink=$sink');
+}

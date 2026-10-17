@@ -74,16 +74,16 @@ export default class BleDescriptorManager {
       return;
     }
     // 按设备串行执行 GATT 操作，避免 OHOS BLE 栈 2900011 "operation is busy" 错误。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
-      let services: ble.GattService[] | undefined =
-        this.plugin.gattCache.deviceServicesMap.get(remoteId);
-      if (services == null) {
-        services = await gatt.getServices();
-        this.plugin.gattCache.deviceServicesMap.set(remoteId, services);
-      }
+      const revision = session.servicesRevision;
+      let services: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+      session.assertCurrent(revision);
       let found: ChrFound | undefined =
         await BleGattShared.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
           services);
+      session.assertCurrent(revision);
       if (found == null || found.error != null) {
         let err: string = found == null ? 'characteristic not found' : found.error as string;
         BleUtils.log(hilog.LogLevel.ERROR, `readDescriptor failed: ${err}`);
@@ -113,7 +113,9 @@ export default class BleDescriptorManager {
       let readDescriptorFlag: boolean = false;
       try {
         readDescriptor = await gatt.readDescriptorValue(descriptor);
+        session.assertCurrent(revision);
       } catch (e) {
+        session.assertCurrent(revision);
         let error = e as BusinessError;
         errorMessage = error.message;
         errorCode = error.code;
@@ -127,7 +129,7 @@ export default class BleDescriptorManager {
       let primaryService: ble.GattService | null = BleGattShared.getPrimaryService(services, characteristic);
       this.emitReadDescResponse(remoteId, characteristic, readDescriptor, primaryService, services,
         readDescriptorFlag, errorCode, errorMessage, result);
-    });
+    }, session);
   }
 
   /**
@@ -192,16 +194,16 @@ export default class BleDescriptorManager {
       return;
     }
     // 按设备串行执行 GATT 操作，避免 OHOS BLE 栈 2900011 "operation is busy" 错误。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
-      let gattService: ble.GattService[] | undefined =
-        this.plugin.gattCache.deviceServicesMap.get(remoteId);
-      if (gattService == null) {
-        gattService = await gatt.getServices();
-        this.plugin.gattCache.deviceServicesMap.set(remoteId, gattService);
-      }
+      const revision = session.servicesRevision;
+      let gattService: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+      session.assertCurrent(revision);
       let found: ChrFound | undefined =
         await BleGattShared.locateCharacteristic(primaryServiceUuid, serviceUuid, characteristicUuid, instanceId,
           gattService);
+      session.assertCurrent(revision);
     if (found == null || found.error != null) {
       let err: string = found == null ? 'characteristic not found' : found.error as string;
       BleUtils.log(hilog.LogLevel.ERROR, `writeDescriptor failed: ${err}`);
@@ -237,9 +239,10 @@ export default class BleDescriptorManager {
       return;
     }
     let target = new GattWriteTarget(remoteId, primaryServiceUuid, serviceUuid, characteristicUuid, instanceId);
-    let ctx = new GattWriteContext(gatt, characteristic, gattService, target, result);
+    let ctx = new GattWriteContext(gatt, characteristic, gattService, target, result, session);
     await this.executeWriteDescriptor(ctx, descriptor, value, descriptorUuid);
-    }); // runGatt
+      session.assertCurrent(revision);
+    }, session); // runGatt
   }
 
   /**
@@ -254,13 +257,16 @@ export default class BleDescriptorManager {
     let writeValue: ArrayBuffer = BleUtils.typedArrayToBuffer(value as Uint8Array);
     descriptor.descriptorValue = writeValue;
     try {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       await ctx.gatt.writeDescriptorValue(descriptor);
+      ctx.session.assertCurrent(ctx.servicesRevision);
     } catch (e) {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       let error = e as BusinessError;
       BleUtils.log(hilog.LogLevel.ERROR,
         `writeDescriptor failed: gatt.writeDescriptor() returned false, ` +
         `errorCode=${error.code}, errorMessage=${error.message}`);
-      // 写入失败：清理刚缓存的写入值，避免 writeDescMap 残留（clearForDevice 不清此 Map）。
+      // 写入失败：清理刚缓存的写入值，避免 writeDescMap 残留。
       this.plugin.gattCache.writeDescMap.delete(key);
       ctx.result.error('writeDescriptor', 'gatt.writeDescriptor() returned false', null);
       return;

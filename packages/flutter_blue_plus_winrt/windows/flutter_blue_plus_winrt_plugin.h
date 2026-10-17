@@ -153,12 +153,31 @@ class FlutterBluePlusWinrtPlugin : public flutter::Plugin {
   void OnCharacteristicValueChanged(
       std::string remote_id,
       const winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic& sender,
-      const winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattValueChangedEventArgs& args);
+      const winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattValueChangedEventArgs& args,
+      std::string primary_service_uuid);
 
   void OnMaxPduSizeChanged(
       std::string remote_id,
       const winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattSession& sender,
       const winrt::Windows::Foundation::IInspectable& args);
+
+  // Coroutine parameters are stored in the coroutine frame, unlike captures
+  // of a temporary coroutine lambda.
+  winrt::fire_and_forget HandleAdvertisementAsync(
+      winrt::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementReceivedEventArgs args,
+      std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui);
+  winrt::fire_and_forget HandleConnectionStatusAsync(
+      winrt::Windows::Devices::Bluetooth::BluetoothLEDevice device,
+      std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui);
+  winrt::fire_and_forget HandleCharacteristicValueAsync(
+      std::string remote_id,
+      winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattCharacteristic sender,
+      winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattValueChangedEventArgs args,
+      std::string primary_service_uuid, std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui);
+  winrt::fire_and_forget HandleMaxPduSizeAsync(
+      std::string remote_id,
+      winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::GattSession sender,
+      std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui);
 
   winrt::fire_and_forget PeriodicConnectionCheck();
 

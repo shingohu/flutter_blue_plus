@@ -41,7 +41,9 @@ final class _LinuxFoundCharacteristic {
 }
 
 final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
-  final _client = BlueZClient();
+  final BlueZClient _client;
+
+  FlutterBluePlusLinux({BlueZClient? client}) : _client = client ?? BlueZClient();
 
   var _initialized = false;
   var _logLevel = LogLevel.none;
@@ -1068,7 +1070,20 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
     FlutterBluePlusPlatform.instance = FlutterBluePlusLinux();
   }
 
+  Future<void>? _initializing;
+
   Future<void> _initFlutterBluePlus() async {
+    if (_initialized) return;
+    final pending = _initializing ??= _initialize();
+    try {
+      await pending;
+    } catch (_) {
+      if (identical(_initializing, pending)) _initializing = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _initialize() async {
     if (_initialized) {
       return;
     }

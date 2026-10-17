@@ -55,13 +55,12 @@ export default class BleGattManager {
       }
       let gatt: ble.GattClientDevice = gattMaybe;
       // 按设备串行执行 GATT 操作，避免与其它 GATT 操作并发冲突。
+      const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+        this.plugin.connectionManager.connectedDevices);
       await this.plugin.gattCache.runGatt(remoteId, async () => {
-        let services: ble.GattService[] | undefined =
-          this.plugin.gattCache.deviceServicesMap.get(remoteId);
-        if (services == null) {
-          services = await gatt.getServices();
-          this.plugin.gattCache.deviceServicesMap.set(remoteId, services);
-        }
+        const revision = session.servicesRevision;
+        let services: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+        session.assertCurrent(revision);
         let gapService: ble.GattService | undefined;
         for (let service of services) {
           if (BleUtils.uuidStr(service.serviceUuid) == '1800') {
@@ -83,13 +82,14 @@ export default class BleGattManager {
           return;
         }
         let readCharacteristic: ble.BLECharacteristic = await gatt.readCharacteristicValue(deviceNameChar);
+        session.assertCurrent(revision);
         let deviceName: string =
           BleUtils.utf8BytesToString(Array.from(new Uint8Array(readCharacteristic.characteristicValue)));
         let response: Map<string, string> = new Map();
         response.set('remote_id', remoteId);
         response.set('name', deviceName);
         this.plugin.channel?.invokeMethod('OnNameChanged', response);
-      });
+      }, session);
     } catch (e) {
       BleUtils.log(hilog.LogLevel.ERROR, `readDeviceName: Failed to read device name: ${JSON.stringify(e)}`);
     }
@@ -167,16 +167,26 @@ export default class BleGattManager {
     let rssiValue: number = 0;
     let errorCode: number = 0;
     let errMsg: string = 'GATT_SUCCESS';
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     // 按设备串行执行 GATT 操作，避免与其它 GATT 操作并发冲突。
     try {
       await this.plugin.gattCache.runGatt(remoteId, async () => {
         rssiValue = await gatt.getRssiValue();
-      });
+        session.assertCurrent();
+      }, session);
     } catch (e) {
       let error = e as BusinessError;
       readRssiFlag = false;
       errorCode = error?.code ?? 0;
       errMsg = error?.message ?? 'unknown error';
+    }
+    // Both successful and failed old requests must stay out of the new
+    // connection's response stream, including changes while runGatt returns.
+    session.assertCurrent();
+    if (this.plugin.isDetached) {
+      result.error('readRssi', 'plugin is detached', null);
+      return;
     }
     // RSSI=0 是合法读数（设备贴近时常见强信号），
     // 不可当失败；getRssiValue 失败会抛异常被上方 catch，不会返回 0。
@@ -219,11 +229,17 @@ export default class BleGattManager {
     // discoverServices 必须加锁：它调 gatt.getServices()，且完成后 Flutter 端会自动
     // 触发 setNotifyValue（如 1801/2a05 Service Changed），如果 discoverServices 还没完成，
     // setNotifyValue 就会与它冲突。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
       let services: ble.GattService[];
+      this.plugin.gattCache.invalidateServices(remoteId);
+      const revision = session.servicesRevision;
       try {
-        services = await gatt.getServices();
+        services = await this.plugin.gattCache.servicesFor(session);
+        session.assertCurrent(revision);
       } catch (e) {
+        session.assertCurrent(revision);
         let error = e as BusinessError;
         BleUtils.log(hilog.LogLevel.ERROR,
           `discoverServices failed for remoteId=${remoteId}: gatt.getServices() threw, ` +
@@ -237,11 +253,10 @@ export default class BleGattManager {
         result.error('discoverServices', 'gatt.discoverServices() returned false', null);
         return;
       }
-      // 缓存发现的服务，后续 read/write/notify 可直接使用，避免重复调 getServices()
-      this.plugin.gattCache.deviceServicesMap.set(remoteId, services);
+      // servicesFor owns the revision-checked cache write.
       this.onDiscoveredServices(services, remoteId);
       result.success(true);
-    });
+    }, session);
   }
 
   /**

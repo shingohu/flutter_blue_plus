@@ -45,6 +45,9 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 @property(nonatomic) NSMutableDictionary *discoveryErrors;
 @property(nonatomic) NSMutableDictionary *didWriteWithoutResponse;
 @property(nonatomic) NSMutableDictionary *peripheralMtu;
+// Consecutive checkForMtuChangesCallback ticks each peripheral's MTU has been unchanged, keyed by
+// peripheral. Used to reduce polling frequency once the value has settled.
+@property(nonatomic) NSMutableDictionary *peripheralMtuStableTicks;
 @property(nonatomic) NSMutableDictionary *writeChrs;
 @property(nonatomic) NSMutableDictionary *writeDescs;
 @property(nonatomic) NSMutableDictionary *scanCounts;
@@ -70,6 +73,7 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     instance.discoveryErrors = [NSMutableDictionary new];
     instance.didWriteWithoutResponse = [NSMutableDictionary new];
     instance.peripheralMtu = [NSMutableDictionary new];
+    instance.peripheralMtuStableTicks = [NSMutableDictionary new];
     instance.writeChrs = [NSMutableDictionary new];
     instance.writeDescs = [NSMutableDictionary new];
     instance.scanCounts = [NSMutableDictionary new];
@@ -146,17 +150,8 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
             self.centralManager = [[CBCentralManager alloc] initWithDelegate:self queue:nil options:options];
         }
-        // initialize timer
-        if (self.checkForMtuChangesTimer == nil)
-        {
-            Log(LDEBUG, @"initializing checkForMtuChangesTimer");
-
-            self.checkForMtuChangesTimer = [NSTimer scheduledTimerWithTimeInterval:0.025
-                target:self
-                selector:@selector(checkForMtuChangesCallback) 
-                userInfo:@{}
-                repeats:YES];
-        }
+        // Note: the MTU poll is armed on connect (see didConnectPeripheral), not here. Arming it
+        // here left it running for the process lifetime even with nothing connected.
         // check that we have an adapter, except for the 
         // functions that don't need it
         if (self.centralManager == nil && 
@@ -1095,8 +1090,13 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     [self.discoveryErrors removeAllObjects];
     [self.didWriteWithoutResponse removeAllObjects];
     [self.peripheralMtu removeAllObjects];
+    [self.peripheralMtuStableTicks removeAllObjects];
     [self.writeChrs removeAllObjects];
     [self.writeDescs removeAllObjects];
+
+    if (self.connectedPeripherals.count == 0) {
+        [self disarmMtuPoll];
+    }
 }
 
 - (NSMutableArray *)pendingServicesForRemoteId:(NSString *)remoteId createIfMissing:(BOOL)create
@@ -1145,6 +1145,13 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
 - (void)recordDiscoveryError:(NSError *)error remoteId:(NSString *)remoteId
 {
+    // CoreBluetooth restricts access to some UUIDs, including Matter attributes.
+    // Continue discovering accessible attributes instead of failing the entire discovery.
+    if ([error.domain isEqualToString:CBErrorDomain] && error.code == CBErrorUUIDNotAllowed) {
+        Log(LWARNING, @"discovery: ignoring restricted UUID: %@", [error localizedDescription]);
+        return;
+    }
+
     if (error != nil && self.discoveryErrors[remoteId] == nil) {
         self.discoveryErrors[remoteId] = error;
     }
@@ -1189,8 +1196,58 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
 // in iOS, mtu is negotatiated once automatically sometime after the
 // the connection process, but there is no platform callback for it.
+// Report post-connect MTU changes promptly, then keep a low-frequency fallback:
+// an unchanged value does not prove that negotiation has completed.
+static const NSTimeInterval kMtuPollInterval = 0.1;
+static const NSTimeInterval kMtuSlowPollInterval = 1.0;
+
+// Ticks a peripheral's MTU must be unchanged before it counts as settled (2s at kMtuPollInterval).
+static const int kMtuSettledTicks = 20;
+
+// Replace the timer only when its frequency changes.
+- (void)setMtuPollInterval:(NSTimeInterval)interval
+{
+    if (self.checkForMtuChangesTimer != nil && self.checkForMtuChangesTimer.timeInterval == interval) {
+        return;
+    }
+
+    [self disarmMtuPoll];
+    Log(LDEBUG, @"arming checkForMtuChangesTimer");
+
+    self.checkForMtuChangesTimer = [NSTimer scheduledTimerWithTimeInterval:interval
+        target:self
+        selector:@selector(checkForMtuChangesCallback)
+        userInfo:@{}
+        repeats:YES];
+}
+
+// A new connection must restore fast polling even if an existing connection has settled.
+- (void)armMtuPollIfNeeded
+{
+    [self setMtuPollInterval:kMtuPollInterval];
+}
+
+- (void)disarmMtuPoll
+{
+    if (self.checkForMtuChangesTimer == nil) {
+        return;
+    }
+
+    Log(LDEBUG, @"disarming checkForMtuChangesTimer");
+
+    [self.checkForMtuChangesTimer invalidate];
+    self.checkForMtuChangesTimer = nil;
+}
+
 - (void)checkForMtuChangesCallback
 {
+    if (self.connectedPeripherals.count == 0) {
+        [self disarmMtuPoll];
+        return;
+    }
+
+    bool anyUnsettled = false;
+
     for (NSString *key in self.connectedPeripherals) {
 
         CBPeripheral *peripheral = [self.connectedPeripherals objectForKey:key];
@@ -1205,6 +1262,9 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
             // remember new mtu value
             [self.peripheralMtu setObject:@(curMtu) forKey:peripheral];
 
+            // a change restarts the settle window
+            [self.peripheralMtuStableTicks setObject:@(0) forKey:peripheral];
+
             NSString* remoteId = [[peripheral identifier] UUIDString];
 
             // See BmMtuChangedResponse
@@ -1218,8 +1278,21 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
 
             // send mtu value
             [self.methodChannel invokeMethod:@"OnMtuChanged" arguments:mtuChanged];
+
+            anyUnsettled = true;
+        } else {
+            NSNumber* ticks = (NSNumber*) [self.peripheralMtuStableTicks objectForKey:peripheral];
+            int nextTicks = MIN((ticks == nil ? 0 : [ticks intValue]) + 1, kMtuSettledTicks);
+            [self.peripheralMtuStableTicks setObject:@(nextTicks) forKey:peripheral];
+
+            if (nextTicks < kMtuSettledTicks) {
+                anyUnsettled = true;
+            }
         }
     }
+
+    // Keep observing stable connections so delayed negotiation cannot leave Dart's MTU cache stale.
+    [self setMtuPollInterval:anyUnsettled ? kMtuPollInterval : kMtuSlowPollInterval];
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1410,6 +1483,10 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     // remember the connected peripherals of *this app*
     [self.connectedPeripherals setObject:peripheral forKey:remoteId];
 
+    // iOS has no MTU-changed callback and the value is not yet valid here (the ATT exchange
+    // completes asynchronously), so start with fast polling.
+    [self armMtuPollIfNeeded];
+
     // remove from currently connecting peripherals
     [self.currentlyConnectingPeripherals removeObjectForKey:remoteId];
 
@@ -1444,11 +1521,16 @@ typedef NS_ENUM(NSUInteger, LogLevel) {
     // remember the connected peripherals of *this app*
     [self.connectedPeripherals removeObjectForKey:remoteId];
 
+    if (self.connectedPeripherals.count == 0) {
+        [self disarmMtuPoll];
+    }
+
     // remove from currently connecting peripherals
     [self.currentlyConnectingPeripherals removeObjectForKey:remoteId];
 
     // clear negotiated mtu
     [self.peripheralMtu removeObjectForKey:peripheral];
+    [self.peripheralMtuStableTicks removeObjectForKey:peripheral];
 
     // clear any per-device state that would otherwise leak across reconnects
     [self clearPendingDiscoveryForRemoteId:remoteId];

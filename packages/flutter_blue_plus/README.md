@@ -1238,3 +1238,25 @@ If you just added flutter_blue_plus to your pubspec.yaml, a hot reload / hot res
 You need to fully stop your app and run again so that the native plugins are loaded.
 
 Also try `flutter clean`.
+
+
+### Operation timeouts and reconnecting
+
+GATT operations apply `timeout` while waiting for a queue slot and while awaiting
+both the native method result and its BLE response. Queue waiting and execution
+have separate timeout budgets. A timed-out queued request is removed without
+interrupting the request ahead of it.
+
+Once a submitted operation times out, disconnect and reconnect the device before
+issuing more GATT operations. Timing out a Dart Future does not cancel the native
+BLE request; this prevents a late response from completing a later request.
+You can use `device.disconnect(queue: false)` to cancel a pending connection or
+operation, then reconnect and discover services again.
+
+After a connection attempt fails, retries wait for its native call to settle and
+for cancellation to complete. This prevents a delayed native connection or its
+cleanup from affecting the next attempt. Waiting retries still honor their
+timeout, and GATT operations remain blocked during cleanup. If native never
+finishes the old call, that device remains blocked; a Dart timeout cannot cancel
+the underlying platform request. Failed cancellation can be retried by calling
+`disconnect(queue: false)`.

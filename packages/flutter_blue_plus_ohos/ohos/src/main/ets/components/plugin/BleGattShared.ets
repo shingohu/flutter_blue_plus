@@ -19,6 +19,7 @@ import { List } from '@kit.ArkTS';
 import { MethodResult } from '@ohos/flutter_ohos';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import BleUtils from './BleUtils';
+import { GattSession } from './GattCacheHolder';
 
 /** locateCharacteristic 查找结果。 */
 export class ChrFound {
@@ -69,6 +70,8 @@ export class GattWriteTarget {
  * （身份字段经 target 摊平为 ctx.* 直属字段，保持调用方访问不变）。
  */
 export class GattWriteContext {
+  public session: GattSession;
+  public servicesRevision: number;
   /** 目标设备的 GattClientDevice。 */
   public gatt: ble.GattClientDevice;
   /** 目标特征。 */
@@ -89,7 +92,9 @@ export class GattWriteContext {
   public result: MethodResult;
 
   constructor(gatt: ble.GattClientDevice, characteristic: ble.BLECharacteristic,
-    gattServices: ble.GattService[], target: GattWriteTarget, result: MethodResult) {
+    gattServices: ble.GattService[], target: GattWriteTarget, result: MethodResult, session: GattSession) {
+    this.session = session;
+    this.servicesRevision = session.servicesRevision;
     this.gatt = gatt;
     this.characteristic = characteristic;
     this.gattServices = gattServices;
@@ -116,58 +121,62 @@ export class GattWriteContext {
 export default class BleGattShared {
   /**
    * 计算特征在所属服务中的实例 ID（用于区分同 UUID 多特征）。
-   * API>=18 用 characteristicValueHandle 精确匹配；否则用 properties+descriptors.length 近似匹配。
-   * 同 UUID 特征数>1 时返回索引+1，否则返回 0。
+   * API>=18 对重复 UUID 使用 characteristicValueHandle；否则仅接受可证明的对象身份。
+   * 跨所有同 UUID 服务计算重复实例，唯一实例返回 0。
    * @param target - 目标特征
    * @param services - GATT 服务数组
    * @returns 实例 ID
    */
   static getInstanceId(target: ble.BLECharacteristic, services: ble.GattService[]): number {
-    let targetService: ble.GattService | undefined;
-    let indexForTarget = 0;
-    const apiVersion: number = deviceInfo.sdkApiVersion;
-    for (let service of services) {
-      if (service.characteristics) {
-        for (let i = 0; i < service.characteristics.length; i++) {
-          let char = service.characteristics[i];
-          let isMatch = false;
+    const primary = BleGattShared.getPrimaryService(services, target);
+    const matches = BleGattShared.matchingServices(primary?.serviceUuid ?? null, target.serviceUuid, services);
+    let chars: ble.BLECharacteristic[] = [];
+    for (const service of matches) {
+      for (const c of service.characteristics) {
+        if (BleUtils.uuid128(c.characteristicUuid) === BleUtils.uuid128(target.characteristicUuid)) chars.push(c);
+      }
+    }
+    if (chars.length === 0) {
+      // Service Changed must remain observable even before discovery includes
+      // the Generic Attribute service. Other absent characteristics are stale.
+      if (BleUtils.uuid128(target.serviceUuid) === BleUtils.uuid128('1801') &&
+        BleUtils.uuid128(target.characteristicUuid) === BleUtils.uuid128('2a05')) return 0;
+      throw new Error('Characteristic not in current services');
+    }
+    if (chars.length === 1 && deviceInfo.sdkApiVersion >= 18 &&
+      target.characteristicValueHandle > 0 && chars[0].characteristicValueHandle > 0 &&
+      target.characteristicValueHandle !== chars[0].characteristicValueHandle) {
+      throw new Error('Obsolete characteristic handle');
+    }
+    if (chars.length <= 1) return 0;
+    if (deviceInfo.sdkApiVersion >= 18 && target.characteristicValueHandle > 0) {
+      if (!chars.some(c => c.characteristicValueHandle === target.characteristicValueHandle)) {
+        throw new Error('Obsolete characteristic handle');
+      }
+      return target.characteristicValueHandle;
+    }
+    // Older APIs cannot distinguish cloned notifications for identical UUIDs.
+    // Reference identity is safe during discovery; never guess from properties.
+    const index = chars.indexOf(target);
+    if (index < 0) throw new Error('Ambiguous characteristic: platform supplies no instance handle');
+    return index + 1;
+  }
 
-          if (char.characteristicUuid === target.characteristicUuid) {
-            if (apiVersion >= 18) {
-              isMatch = char.characteristicValueHandle === target.characteristicValueHandle;
-            } else {
-              isMatch = (
-                char.properties?.toString() === target.properties?.toString() &&
-                  char.descriptors?.length === target.descriptors?.length
-              );
-            }
+  static matchingServices(primaryUuid: string | null, serviceUuid: string,
+    services: ble.GattService[]): ble.GattService[] {
+    const matches: ble.GattService[] = [];
+    for (const root of services) {
+      if (primaryUuid == null) {
+        if (root.isPrimary && BleUtils.uuid128(root.serviceUuid) === BleUtils.uuid128(serviceUuid)) matches.push(root);
+      } else if (BleUtils.uuid128(root.serviceUuid) === BleUtils.uuid128(primaryUuid)) {
+        for (const included of root.includeServices ?? []) {
+          if (BleUtils.uuid128(included.serviceUuid) === BleUtils.uuid128(serviceUuid) && matches.indexOf(included) < 0) {
+            matches.push(included);
           }
-
-          if (isMatch) {
-            targetService = service;
-            indexForTarget = i;
-            break;
-          }
-        }
-        if (targetService) {
-          break;
         }
       }
     }
-
-    if (!targetService || !targetService.characteristics) {
-      return 0;
-    }
-    const needle = target.characteristicUuid;
-    const list = targetService.characteristics;
-    let sameUuidCount = 0;
-
-    for (let c of list) {
-      if (c.characteristicUuid === needle) {
-        sameUuidCount++;
-      }
-    }
-    return (sameUuidCount > 1) ? indexForTarget + 1 : 0;
+    return matches;
   }
 
   /**
@@ -178,30 +187,46 @@ export default class BleGattShared {
    */
   static getPrimaryService(services: ble.GattService[],
     characteristic: ble.BLECharacteristic): ble.GattService | null {
-    let service: ble.GattService | null = null;
-    for (let i = 0; i < services.length; i++) {
-      if (services[i].serviceUuid === characteristic.serviceUuid) {
-        service = services[i];
+    for (const root of services) {
+      if (!root.isPrimary) continue;
+      for (const candidate of root.characteristics) {
+        if (candidate === characteristic || (deviceInfo.sdkApiVersion >= 18 &&
+          characteristic.characteristicValueHandle > 0 &&
+          candidate.characteristicValueHandle === characteristic.characteristicValueHandle)) return null;
       }
     }
-    if (!service) {
-      return null;
-    }
-    if (service?.isPrimary) {
-      return null;
-    }
-    for (let i = 0; i < services.length; i++) {
-      let primaryService = services[i];
-      if (primaryService.includeServices) {
-        for (let j = 0; j < primaryService.includeServices.length; j++) {
-          let secondaryService = primaryService.includeServices[j];
-          if (secondaryService.serviceUuid === service?.serviceUuid) {
-            return primaryService;
-          }
+    for (const root of services) {
+      for (const included of root.includeServices ?? []) {
+        for (const candidate of included.characteristics) {
+          if (candidate === characteristic || (deviceInfo.sdkApiVersion >= 18 &&
+            characteristic.characteristicValueHandle > 0 &&
+            candidate.characteristicValueHandle === characteristic.characteristicValueHandle)) return root;
         }
       }
     }
-    return null;
+    // UUID-only callbacks must consider primary and included candidates alike.
+    // A unique included owner is not proof if a primary service also matches.
+    let owner: ble.GattService | null = null;
+    let found: boolean = false;
+    const serviceUuid = BleUtils.uuid128(characteristic.serviceUuid);
+    const charUuid = BleUtils.uuid128(characteristic.characteristicUuid);
+    for (const root of services) {
+      if (root.isPrimary && BleUtils.uuid128(root.serviceUuid) === serviceUuid &&
+        root.characteristics.some(c => BleUtils.uuid128(c.characteristicUuid) === charUuid)) {
+        if (found && owner !== null) throw new Error('Ambiguous service owner');
+        found = true;
+        owner = null;
+      }
+      for (const included of root.includeServices ?? []) {
+        if (BleUtils.uuid128(included.serviceUuid) === serviceUuid &&
+          included.characteristics.some(c => BleUtils.uuid128(c.characteristicUuid) === charUuid)) {
+          if (found && owner !== root) throw new Error('Ambiguous service owner');
+          found = true;
+          owner = root;
+        }
+      }
+    }
+    return owner;
   }
 
   /**
@@ -230,33 +255,12 @@ export default class BleGattShared {
    */
   static getCharacteristicFromArray(uuid: string, array: ble.BLECharacteristic[],
     services: ble.GattService[], instanceId: number): ble.BLECharacteristic | null {
-    let targetUuid = BleUtils.uuid128(uuid);
-    let matchingChars: ble.BLECharacteristic[] = [];
-    for (let characteristic of array) {
-      if (BleUtils.uuid128(characteristic.characteristicUuid) === targetUuid) {
-        matchingChars.push(characteristic);
-      }
+    const targetUuid = BleUtils.uuid128(uuid);
+    for (const characteristic of array) {
+      if (BleUtils.uuid128(characteristic.characteristicUuid) === targetUuid &&
+        BleGattShared.getInstanceId(characteristic, services) === instanceId) return characteristic;
     }
-    if (matchingChars.length === 0) {
-      return null;
-    }
-    if (matchingChars.length === 1) {
-      return matchingChars[0];
-    }
-    if (instanceId === 0) {
-      return matchingChars[0];
-    }
-    for (let characteristic of matchingChars) {
-      let charInstanceId: number = BleGattShared.getInstanceId(characteristic, services);
-      if (charInstanceId === instanceId) {
-        return characteristic;
-      }
-    }
-    let index = instanceId - 1;
-    if (index >= 0 && index < matchingChars.length) {
-      return matchingChars[index];
-    }
-    return matchingChars[0];
+    return null;
   }
 
   /**
@@ -271,32 +275,14 @@ export default class BleGattShared {
   static async locateCharacteristic(primaryServiceUuid: string, serviceUuid: string,
     characteristicUuid: string, instanceId: number,
     gattServices: ble.GattService[]): Promise<ChrFound | undefined> {
-    let isSecondaryService: boolean = primaryServiceUuid != null;
-    if (primaryServiceUuid == null) {
-      primaryServiceUuid = serviceUuid;
+    const services = BleGattShared.matchingServices(primaryServiceUuid ?? null, serviceUuid, gattServices);
+    const characteristics: ble.BLECharacteristic[] = [];
+    for (const service of services) {
+      for (const characteristic of service.characteristics) characteristics.push(characteristic);
     }
-    let primaryService = BleGattShared.getServiceFromArray(primaryServiceUuid, gattServices);
-    if (primaryService == null) {
-      let result: ChrFound = new ChrFound(null, 'primary service not found \'' + primaryServiceUuid + '\'');
-      return result;
-    }
-    let secondaryService: ble.GattService | null = null;
-    if (isSecondaryService) {
-      if (primaryService.includeServices) {
-        secondaryService = BleGattShared.getServiceFromArray(serviceUuid, primaryService.includeServices);
-      }
-      if (secondaryService == null) {
-        return new ChrFound(null,
-          'secondary service not found \'' + serviceUuid + '\' (primary service \'' + primaryServiceUuid + '\')');
-      }
-    }
-    let service: ble.GattService = (secondaryService != null) ? secondaryService : primaryService;
-    let characteristic: ble.BLECharacteristic | null =
-      BleGattShared.getCharacteristicFromArray(characteristicUuid, service.characteristics, gattServices, instanceId);
-    if (characteristic == null) {
-      return new ChrFound(null, 'characteristic not found in service ' +
-        '(chr: \'' + characteristicUuid + '\' svc: \'' + serviceUuid + '\')');
-    }
+    const characteristic = BleGattShared.getCharacteristicFromArray(characteristicUuid,
+      characteristics, gattServices, instanceId);
+    if (characteristic == null) return new ChrFound(null, 'characteristic instance not found');
     return new ChrFound(characteristic, null);
   }
 

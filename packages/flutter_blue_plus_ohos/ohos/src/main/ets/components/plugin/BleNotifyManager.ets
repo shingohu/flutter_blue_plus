@@ -90,27 +90,28 @@ export default class BleNotifyManager {
     // BLECharacteristicChange 回调签名不含 deviceId（平台限制），故在此构造闭包捕获 deviceId，
     // 直接派发给 onCharacteristicReceived —— 无需遍历所有已连设备按 UUID 反查，
     // 多设备相同 UUID 不串台。
+    const session = this.plugin.gattCache.sessionFor(deviceId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     let callback = async (characteristicChangeReq: ble.BLECharacteristic) => {
+      const revision = session.servicesRevision;
       try {
-        if (this.plugin.isDetached) {
+        if (this.plugin.isDetached) return;
+        session.assertCurrent(revision);
+        let services = this.plugin.gattCache.deviceServicesMap.get(deviceId);
+        if (BleUtils.uuidStr(characteristicChangeReq.serviceUuid) === '1801' &&
+          BleUtils.uuidStr(characteristicChangeReq.characteristicUuid) === '2a05') {
+          this.onCharacteristicReceived(deviceId, services ?? [], characteristicChangeReq);
           return;
         }
-        // 注意：此回调由 BLE 栈异步触发，若 deviceServicesMap 缓存 miss 时调
-        // gatt.getServices()，可能与 runGatt 保护的 GATT 操作并发触发 2900011。
-        // 但正常流程 connect → discoverServices 已缓存服务，此处几乎不会 miss；
-        // 即使 miss 并发，catch 兜底吞掉异常，仅丢失本条通知数据，不影响后续。
-        let services = this.plugin.gattCache.deviceServicesMap.get(deviceId);
-        if (services == null) {
-          // 设备未发现服务缓存（理论上下游应已 discoverServices）时现场取一次，
-          // 保证 onCharacteristicReceived 能定位 primary service。
-          services = await gatt.getServices();
-          this.plugin.gattCache.deviceServicesMap.set(deviceId, services);
+        if (services == null || session.notificationLoad != null) {
+          services = await this.plugin.gattCache.notificationServices(session);
         }
+        session.assertCurrent(revision);
+        if (this.plugin.isDetached) return;
         this.onCharacteristicReceived(deviceId, services, characteristicChangeReq);
       } catch (e) {
-        // 顶层兜底：通知数据到达回调异常必须吞掉，避免中断后续特征通知事件。
         BleUtils.log(hilog.LogLevel.ERROR,
-          `onCharacteristicChange: unhandled error for ${deviceId}: ${JSON.stringify(e)}`);
+          `onCharacteristicChange: failed for ${deviceId}: ${JSON.stringify(e)}`);
       }
     };
     this.notifyCallbackMap.set(deviceId, callback);
@@ -165,14 +166,13 @@ export default class BleNotifyManager {
       return;
     }
     // 按设备串行执行 GATT 操作，避免 OHOS BLE 栈 2900011 "operation is busy" 错误。
+    const session = this.plugin.gattCache.sessionFor(remoteId, gatt,
+      this.plugin.connectionManager.connectedDevices);
     await this.plugin.gattCache.runGatt(remoteId, async () => {
+      const revision = session.servicesRevision;
       // 优先使用 deviceServicesMap 缓存，对齐 readCharacteristic/writeCharacteristic 的策略。
-      let gattServices: ble.GattService[] | undefined =
-        this.plugin.gattCache.deviceServicesMap.get(remoteId);
-      if (gattServices == null) {
-        gattServices = await gatt.getServices();
-        this.plugin.gattCache.deviceServicesMap.set(remoteId, gattServices);
-      }
+      let gattServices: ble.GattService[] = await this.plugin.gattCache.servicesFor(session);
+      session.assertCurrent(revision);
       if (gattServices == null || gattServices == undefined) {
         BleUtils.log(hilog.LogLevel.ERROR,
           'setNotifyValue failed for remoteId=' + remoteId + ': no services discovered');
@@ -182,6 +182,7 @@ export default class BleNotifyManager {
       let found: ChrFound | undefined =
         await BleGattShared.locateCharacteristic(primaryServiceUuid, serviceUuid,
           characteristicUuid, instanceId, gattServices);
+      session.assertCurrent(revision);
       if (found == null || found.error != null) {
         let err: string = found == null ? 'characteristic not found' : found.error as string;
         BleUtils.log(hilog.LogLevel.ERROR, 'setNotifyValue failed for remoteId=' + remoteId + ': ' + err);
@@ -195,9 +196,10 @@ export default class BleNotifyManager {
         return;
       }
       let target = new GattWriteTarget(remoteId, primaryServiceUuid, serviceUuid, characteristicUuid, instanceId);
-      let ctx = new GattWriteContext(gatt, characteristic, gattServices, target, result);
+      let ctx = new GattWriteContext(gatt, characteristic, gattServices, target, result, session);
       await this.applyNotifyAndWriteCccd(ctx, forceIndications, enable);
-    });
+      session.assertCurrent(revision);
+    }, session);
   }
 
   /**
@@ -212,8 +214,11 @@ export default class BleNotifyManager {
   private async applyNotifyAndWriteCccd(ctx: GattWriteContext, forceIndications: boolean,
     enable: boolean): Promise<void> {
     try {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       await ctx.gatt.setCharacteristicChangeNotification(ctx.characteristic, enable);
+      ctx.session.assertCurrent(ctx.servicesRevision);
     } catch (e) {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       let error = e as BusinessError;
       BleUtils.log(hilog.LogLevel.ERROR,
         `setNotifyValue: failed to set characteristic notification for remoteId=${ctx.remoteId}: ${JSON.stringify(e)}`);
@@ -297,15 +302,18 @@ export default class BleNotifyManager {
       descriptor.descriptorValue = BleUtils.typedArrayToBuffer(descriptorValue);
     }
     try {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       await ctx.gatt.writeDescriptorValue(descriptor);
+      ctx.session.assertCurrent(ctx.servicesRevision);
       // 组装并回传：保留在 try 内，使 getPrimaryService 等异常进入 catch 并清理缓存。
       this.emitNotifyDescResponse(ctx, descriptor);
     } catch (e) {
+      ctx.session.assertCurrent(ctx.servicesRevision);
       let error = e as BusinessError;
       BleUtils.log(hilog.LogLevel.ERROR,
         `setNotifyValue failed for remoteId=${ctx.remoteId}: writeDescriptorValue failed` +
           `, errCode=${error?.code}, errMsg=${error?.message}`);
-      // 写入失败：清理刚缓存的写入值，避免 writeDescMap 残留（clearForDevice 不清此 Map）。
+      // 写入失败：清理刚缓存的写入值，避免 writeDescMap 残留。
       this.plugin.gattCache.writeDescMap.delete(key);
       ctx.result.error('setNotifyValue', 'gatt.writeDescriptor() returned false', null);
     }
@@ -381,7 +389,7 @@ export default class BleNotifyManager {
       if (characteristicUuid == '2a05') {
         // 设备服务结构发生变化，清除服务缓存以强制 discoverServices 重新获取。
         // 否则 read/write/setNotifyValue 仍使用旧缓存，可能定位到已不存在的特征。
-        this.plugin.gattCache.deviceServicesMap.delete(address);
+        this.plugin.gattCache.invalidateServices(address);
         let response: Map<string, string> = BleUtils.bmBluetoothDevice(address);
         this.plugin.channel?.invokeMethod('OnServicesReset', response);
       }

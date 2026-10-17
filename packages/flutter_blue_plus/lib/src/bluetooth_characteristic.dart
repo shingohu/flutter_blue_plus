@@ -136,11 +136,12 @@ class BluetoothCharacteristic {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "readCharacteristic");
 
     // return value
     List<int> responseValue = [];
 
+    final scope = _OperationScope(device, "readCharacteristic", timeout);
     try {
       var request = BmReadCharacteristicRequest(
         remoteId: remoteId,
@@ -151,24 +152,20 @@ class BluetoothCharacteristic {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmCharacteristicData> futureResponse =
-          (_cachedOnReceivedStream ??= FlutterBluePlusPlatform.instance.onCharacteristicReceived
-              .where((p) =>
-                  p.remoteId == remoteId &&
-                  p.primaryServiceUuid == primaryServiceUuid &&
-                  p.serviceUuid == serviceUuid &&
-                  p.characteristicUuid == characteristicUuid &&
-                  p.instanceId == instanceId))
-          .first;
+      Future<BmCharacteristicData> futureResponse = scope.first((_cachedOnReceivedStream ??=
+          FlutterBluePlusPlatform.instance.onCharacteristicReceived.where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.instanceId == instanceId)));
 
       // invoke
-      await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readCharacteristic(request));
+      await scope.invoke(
+          () => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readCharacteristic(request)));
 
       // wait for response
-      BmCharacteristicData response = await futureResponse
-          .fbpEnsureAdapterIsOn("readCharacteristic")
-          .fbpEnsureDeviceIsConnected(device, "readCharacteristic")
-          .fbpTimeout(timeout, "readCharacteristic");
+      BmCharacteristicData response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
@@ -178,6 +175,7 @@ class BluetoothCharacteristic {
       // set return value
       responseValue = response.value;
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -211,8 +209,9 @@ class BluetoothCharacteristic {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "writeCharacteristic");
 
+    final scope = _OperationScope(device, "writeCharacteristic", timeout);
     try {
       final writeType = withoutResponse ? BmWriteType.withoutResponse : BmWriteType.withResponse;
 
@@ -228,34 +227,31 @@ class BluetoothCharacteristic {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmCharacteristicData> futureResponse =
-          (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onCharacteristicWritten
-              .where((p) =>
-                  p.remoteId == remoteId &&
-                  p.primaryServiceUuid == primaryServiceUuid &&
-                  p.serviceUuid == serviceUuid &&
-                  p.characteristicUuid == characteristicUuid &&
-                  p.instanceId == instanceId))
-          .first;
+      Future<BmCharacteristicData> futureResponse = scope.first((_cachedOnWrittenStream ??=
+          FlutterBluePlusPlatform.instance.onCharacteristicWritten.where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.instanceId == instanceId)));
 
       // invoke
-      await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeCharacteristic(request));
+      await scope.invoke(
+          () => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeCharacteristic(request)));
 
       // wait for response so that we can:
       //  1. check for success (writeWithResponse)
       //  2. wait until the packet has been sent, to prevent iOS & Android dropping packets (writeWithoutResponse)
-      BmCharacteristicData response = await futureResponse
-          .fbpEnsureAdapterIsOn("writeCharacteristic")
-          .fbpEnsureDeviceIsConnected(device, "writeCharacteristic")
-          .fbpTimeout(timeout, "writeCharacteristic");
+      BmCharacteristicData response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
         throw FlutterBluePlusException(_nativeError, "writeCharacteristic", response.errorCode, response.errorString);
       }
 
-      return Future.value();
+      return;
     } finally {
+      await scope.close();
       mtx.give();
     }
   }
@@ -279,8 +275,9 @@ class BluetoothCharacteristic {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "setNotifyValue");
 
+    final scope = _OperationScope(device, "setNotifyValue", timeout);
     try {
       var request = BmSetNotifyValueRequest(
         remoteId: remoteId,
@@ -295,27 +292,22 @@ class BluetoothCharacteristic {
       // Notifications & Indications are configured by writing to the
       // Client Characteristic Configuration Descriptor (CCCD)
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse =
-          (_cachedOnDescriptorWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
-              .where((p) =>
-                  p.remoteId == remoteId &&
-                  p.primaryServiceUuid == primaryServiceUuid &&
-                  p.serviceUuid == serviceUuid &&
-                  p.characteristicUuid == characteristicUuid &&
-                  p.descriptorUuid == cccdUuid &&
-                  p.instanceId == instanceId))
-          .first;
+      Future<BmDescriptorData> futureResponse = scope.first((_cachedOnDescriptorWrittenStream ??=
+          FlutterBluePlusPlatform.instance.onDescriptorWritten.where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.descriptorUuid == cccdUuid &&
+              p.instanceId == instanceId)));
 
       // invoke
-      bool hasCCCD =
-          await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.setNotifyValue(request));
+      bool hasCCCD = await scope.invoke(
+          () => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.setNotifyValue(request)));
 
       // wait for CCCD descriptor to be written?
       if (hasCCCD) {
-        BmDescriptorData response = await futureResponse
-            .fbpEnsureAdapterIsOn("setNotifyValue")
-            .fbpEnsureDeviceIsConnected(device, "setNotifyValue")
-            .fbpTimeout(timeout, "setNotifyValue");
+        BmDescriptorData response = await scope.wait(futureResponse);
 
         // failed?
         if (!response.success) {
@@ -323,6 +315,7 @@ class BluetoothCharacteristic {
         }
       }
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -342,7 +335,6 @@ class BluetoothCharacteristic {
         'value: $lastValue'
         '}';
   }
-
 }
 
 class CharacteristicProperties {

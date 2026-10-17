@@ -1,3 +1,8 @@
+## Unreleased
+* Move BLE callback parameters into coroutine frames to avoid temporary closure lifetime errors.
+* Preserve included-service notification identity and use consistent descriptor cache keys.
+* Replace service discovery cache snapshots instead of appending indefinitely.
+
 ## 0.0.18
 * Fix multithreading & connection stability (#5)
 

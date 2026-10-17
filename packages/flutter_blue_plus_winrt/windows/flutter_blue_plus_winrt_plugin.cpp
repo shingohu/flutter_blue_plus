@@ -410,11 +410,10 @@ FlutterBluePlusWinrtPlugin::PopulateCharacteristicsAsync(
                     for (auto descriptor : descResult.Descriptors()) {
                         try {
                             flutter::EncodableMap descMap;
-                            int32_t d_handle = static_cast<int32_t>(descriptor.AttributeHandle());
 
                             {
                                 std::lock_guard<std::mutex> cache_lock(gatt_cache_mutex_);
-                                descriptor_cache_[remote_id + ":" + std::to_string(d_handle)] = descriptor;
+                                descriptor_cache_[remote_id + ":" + std::to_string(handle) + ":" + utils::to_uuid_string(descriptor.Uuid())] = descriptor;
                             }
 
                             descMap[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
@@ -534,134 +533,139 @@ void FlutterBluePlusWinrtPlugin::OnAdvertisementReceived(
     const BluetoothLEAdvertisementWatcher&,
     const BluetoothLEAdvertisementReceivedEventArgs& args) {
 
-    [this, args, alive = is_alive_]() -> winrt::fire_and_forget {
-        try {
-            co_await ui_thread_;
-            if (!*alive) co_return;
+    HandleAdvertisementAsync(args, is_alive_, ui_thread_);
+}
 
-            if (channel_) {
-                std::string remote_id = uint64_to_mac_string(args.BluetoothAddress());
+winrt::fire_and_forget FlutterBluePlusWinrtPlugin::HandleAdvertisementAsync(
+    BluetoothLEAdvertisementReceivedEventArgs args, std::shared_ptr<std::atomic<bool>> alive,
+    winrt::apartment_context ui) {
+    try {
+        co_await ui;
+        if (!*alive) co_return;
 
-                // Bound memory usage: a hostile environment can rotate BLE
-                // addresses rapidly (address randomization / spoofing). Cap the
-                // number of distinct devices tracked during a scan session so
-                // the caches cannot grow without limit. Already-known devices
-                // keep updating normally.
-                constexpr size_t kMaxScanDevices = 4096;
-                bool is_new_device = scan_results_cache_.find(remote_id) == scan_results_cache_.end();
-                if (is_new_device && scan_results_cache_.size() >= kMaxScanDevices) {
-                    co_return;
-                }
+        if (channel_) {
+            std::string remote_id = uint64_to_mac_string(args.BluetoothAddress());
 
-                rssi_cache_[remote_id] = static_cast<int32_t>(args.RawSignalStrengthInDBm());
-
-                if (is_new_device) {
-                     scan_results_cache_[remote_id] = {};
-                }
-                auto& map = scan_results_cache_[remote_id];
-
-                map[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
-                map[flutter::EncodableValue("rssi")] = flutter::EncodableValue(static_cast<int32_t>(args.RawSignalStrengthInDBm()));
-
-                int connectable = args.IsConnectable() ? 1 : 0;
-                if (connectable == 0) {
-                     auto it = map.find(flutter::EncodableValue("connectable"));
-                     if (it != map.end()) {
-                         if (auto* val = std::get_if<int>(&it->second)) {
-                             if (*val == 1) connectable = 1;
-                         }
-                     }
-                }
-                map[flutter::EncodableValue("connectable")] = flutter::EncodableValue(connectable);
-
-                auto advertisement = args.Advertisement();
-                std::string localNameStr = utils::to_string(advertisement.LocalName());
-                if (!localNameStr.empty()) {
-                    map[flutter::EncodableValue("adv_name")] = flutter::EncodableValue(localNameStr);
-                    map[flutter::EncodableValue("platform_name")] = flutter::EncodableValue(localNameStr);
-                }
-
-                if (args.TransmitPowerLevelInDBm() != nullptr) {
-                    map[flutter::EncodableValue("tx_power_level")] =
-                        flutter::EncodableValue(static_cast<int32_t>(args.TransmitPowerLevelInDBm().Value()));
-                }
-
-                for (const auto& section : advertisement.DataSections()) {
-                    if (section.DataType() == 0x19) {
-                        // Guard against a malformed/hostile peripheral sending an
-                        // appearance section shorter than 2 bytes; ReadUInt16 would
-                        // otherwise throw and abort processing of the whole packet.
-                        if (section.Data().Length() < 2) break;
-                        auto reader = winrt::Windows::Storage::Streams::DataReader::FromBuffer(section.Data());
-                        reader.ByteOrder(winrt::Windows::Storage::Streams::ByteOrder::LittleEndian);
-                        uint16_t appearance_value = reader.ReadUInt16();
-                        map[flutter::EncodableValue("appearance")] = flutter::EncodableValue(static_cast<int32_t>(appearance_value));
-                        break;
-                    }
-                }
-
-                if (advertisement.ManufacturerData().Size() > 0) {
-                    flutter::EncodableMap msd_map = flutter::EncodableMap();
-                    for (const auto& msd : advertisement.ManufacturerData()) {
-                        msd_map[flutter::EncodableValue(static_cast<int64_t>(msd.CompanyId()))] =
-                            flutter::EncodableValue(utils::to_vector(msd.Data()));
-                    }
-                    map[flutter::EncodableValue("manufacturer_data")] = msd_map;
-                }
-
-                flutter::EncodableMap service_data_map;
-                auto it_sd = map.find(flutter::EncodableValue("service_data"));
-                if (it_sd != map.end()) {
-                    if (auto* existing = std::get_if<flutter::EncodableMap>(&it_sd->second)) {
-                        service_data_map = *existing;
-                    }
-                }
-
-                bool has_new_service_data = false;
-                for (const auto& section : advertisement.GetSectionsByType(0x16)) {
-                     auto buffer = section.Data();
-                     if (buffer.Length() >= 2) {
-                         has_new_service_data = true;
-                         auto all_data = utils::to_vector(buffer);
-                         uint16_t uuid16 = (all_data[1] << 8) | all_data[0];
-                         std::stringstream ss;
-                         ss << std::hex << std::setfill('0') << std::setw(4) << uuid16;
-                         std::string uuid_str = "0000" + ss.str() + "-0000-1000-8000-00805f9b34fb";
-                         std::vector<uint8_t> data_vec(all_data.begin() + 2, all_data.end());
-                         service_data_map[flutter::EncodableValue(uuid_str)] = flutter::EncodableValue(data_vec);
-                     }
-                }
-                if (has_new_service_data || !service_data_map.empty()) {
-                    map[flutter::EncodableValue("service_data")] = service_data_map;
-                }
-
-                if (advertisement.ServiceUuids().Size() > 0) {
-                    flutter::EncodableList service_uuids_list;
-                    auto it_u = map.find(flutter::EncodableValue("service_uuids"));
-                    if (it_u != map.end()) {
-                        if (auto* existing = std::get_if<flutter::EncodableList>(&it_u->second)) {
-                            service_uuids_list = *existing;
-                        }
-                    }
-                    for (const auto& uuid : advertisement.ServiceUuids()) {
-                         std::string uuid_str = utils::to_uuid_string(uuid);
-                         bool found = false;
-                         for(const auto& existing_val : service_uuids_list) {
-                             if (auto* s = std::get_if<std::string>(&existing_val)) {
-                                 if (*s == uuid_str) { found = true; break; }
-                             }
-                         }
-                         if (!found) service_uuids_list.push_back(flutter::EncodableValue(uuid_str));
-                    }
-                    map[flutter::EncodableValue("service_uuids")] = service_uuids_list;
-                }
-
-                flutter::EncodableMap response;
-                response[flutter::EncodableValue("advertisements")] = flutter::EncodableList{ flutter::EncodableValue(map) };
-                channel_->InvokeMethod("OnScanResponse", std::make_unique<flutter::EncodableValue>(response));
+            // Bound memory usage: a hostile environment can rotate BLE
+            // addresses rapidly (address randomization / spoofing). Cap the
+            // number of distinct devices tracked during a scan session so
+            // the caches cannot grow without limit. Already-known devices
+            // keep updating normally.
+            constexpr size_t kMaxScanDevices = 4096;
+            bool is_new_device = scan_results_cache_.find(remote_id) == scan_results_cache_.end();
+            if (is_new_device && scan_results_cache_.size() >= kMaxScanDevices) {
+                co_return;
             }
-        } catch (...) {}
-    }();
+
+            rssi_cache_[remote_id] = static_cast<int32_t>(args.RawSignalStrengthInDBm());
+
+            if (is_new_device) {
+                 scan_results_cache_[remote_id] = {};
+            }
+            auto& map = scan_results_cache_[remote_id];
+
+            map[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
+            map[flutter::EncodableValue("rssi")] = flutter::EncodableValue(static_cast<int32_t>(args.RawSignalStrengthInDBm()));
+
+            int connectable = args.IsConnectable() ? 1 : 0;
+            if (connectable == 0) {
+                 auto it = map.find(flutter::EncodableValue("connectable"));
+                 if (it != map.end()) {
+                     if (auto* val = std::get_if<int>(&it->second)) {
+                         if (*val == 1) connectable = 1;
+                     }
+                 }
+            }
+            map[flutter::EncodableValue("connectable")] = flutter::EncodableValue(connectable);
+
+            auto advertisement = args.Advertisement();
+            std::string localNameStr = utils::to_string(advertisement.LocalName());
+            if (!localNameStr.empty()) {
+                map[flutter::EncodableValue("adv_name")] = flutter::EncodableValue(localNameStr);
+                map[flutter::EncodableValue("platform_name")] = flutter::EncodableValue(localNameStr);
+            }
+
+            if (args.TransmitPowerLevelInDBm() != nullptr) {
+                map[flutter::EncodableValue("tx_power_level")] =
+                    flutter::EncodableValue(static_cast<int32_t>(args.TransmitPowerLevelInDBm().Value()));
+            }
+
+            for (const auto& section : advertisement.DataSections()) {
+                if (section.DataType() == 0x19) {
+                    // Guard against a malformed/hostile peripheral sending an
+                    // appearance section shorter than 2 bytes; ReadUInt16 would
+                    // otherwise throw and abort processing of the whole packet.
+                    if (section.Data().Length() < 2) break;
+                    auto reader = winrt::Windows::Storage::Streams::DataReader::FromBuffer(section.Data());
+                    reader.ByteOrder(winrt::Windows::Storage::Streams::ByteOrder::LittleEndian);
+                    uint16_t appearance_value = reader.ReadUInt16();
+                    map[flutter::EncodableValue("appearance")] = flutter::EncodableValue(static_cast<int32_t>(appearance_value));
+                    break;
+                }
+            }
+
+            if (advertisement.ManufacturerData().Size() > 0) {
+                flutter::EncodableMap msd_map = flutter::EncodableMap();
+                for (const auto& msd : advertisement.ManufacturerData()) {
+                    msd_map[flutter::EncodableValue(static_cast<int64_t>(msd.CompanyId()))] =
+                        flutter::EncodableValue(utils::to_vector(msd.Data()));
+                }
+                map[flutter::EncodableValue("manufacturer_data")] = msd_map;
+            }
+
+            flutter::EncodableMap service_data_map;
+            auto it_sd = map.find(flutter::EncodableValue("service_data"));
+            if (it_sd != map.end()) {
+                if (auto* existing = std::get_if<flutter::EncodableMap>(&it_sd->second)) {
+                    service_data_map = *existing;
+                }
+            }
+
+            bool has_new_service_data = false;
+            for (const auto& section : advertisement.GetSectionsByType(0x16)) {
+                 auto buffer = section.Data();
+                 if (buffer.Length() >= 2) {
+                     has_new_service_data = true;
+                     auto all_data = utils::to_vector(buffer);
+                     uint16_t uuid16 = (all_data[1] << 8) | all_data[0];
+                     std::stringstream ss;
+                     ss << std::hex << std::setfill('0') << std::setw(4) << uuid16;
+                     std::string uuid_str = "0000" + ss.str() + "-0000-1000-8000-00805f9b34fb";
+                     std::vector<uint8_t> data_vec(all_data.begin() + 2, all_data.end());
+                     service_data_map[flutter::EncodableValue(uuid_str)] = flutter::EncodableValue(data_vec);
+                 }
+            }
+            if (has_new_service_data || !service_data_map.empty()) {
+                map[flutter::EncodableValue("service_data")] = service_data_map;
+            }
+
+            if (advertisement.ServiceUuids().Size() > 0) {
+                flutter::EncodableList service_uuids_list;
+                auto it_u = map.find(flutter::EncodableValue("service_uuids"));
+                if (it_u != map.end()) {
+                    if (auto* existing = std::get_if<flutter::EncodableList>(&it_u->second)) {
+                        service_uuids_list = *existing;
+                    }
+                }
+                for (const auto& uuid : advertisement.ServiceUuids()) {
+                     std::string uuid_str = utils::to_uuid_string(uuid);
+                     bool found = false;
+                     for(const auto& existing_val : service_uuids_list) {
+                         if (auto* s = std::get_if<std::string>(&existing_val)) {
+                             if (*s == uuid_str) { found = true; break; }
+                         }
+                     }
+                     if (!found) service_uuids_list.push_back(flutter::EncodableValue(uuid_str));
+                }
+                map[flutter::EncodableValue("service_uuids")] = service_uuids_list;
+            }
+
+            flutter::EncodableMap response;
+            response[flutter::EncodableValue("advertisements")] = flutter::EncodableList{ flutter::EncodableValue(map) };
+            channel_->InvokeMethod("OnScanResponse", std::make_unique<flutter::EncodableValue>(response));
+        }
+    } catch (...) {}
+
 }
 
 void FlutterBluePlusWinrtPlugin::OnAdvertisementStopped(
@@ -1062,89 +1066,93 @@ std::string FlutterBluePlusWinrtPlugin::uint64_to_mac_string(uint64_t addr) {
 
 void FlutterBluePlusWinrtPlugin::OnConnectionStatusChanged(const BluetoothLEDevice& device, const IInspectable&) {
     // Capture device by value to avoid dangling references
-    [this, alive = is_alive_](BluetoothLEDevice d) -> winrt::fire_and_forget {
-        co_await ui_thread_;
-        if (!*alive) co_return;
+    HandleConnectionStatusAsync(device, is_alive_, ui_thread_);
+}
 
-        std::string remote_id = uint64_to_mac_string(d.BluetoothAddress());
-        flutter::EncodableMap connection_state;
-        connection_state[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
+winrt::fire_and_forget FlutterBluePlusWinrtPlugin::HandleConnectionStatusAsync(
+    BluetoothLEDevice d, std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui) {
+    co_await ui;
+    if (!*alive) co_return;
 
-        if (d.ConnectionStatus() == BluetoothConnectionStatus::Connected) {
-             bool solicited = false;
-             {
-                 std::lock_guard<std::mutex> lock(devices_mutex_);
-                 
-                 auto it_connected = std::find_if(connected_devices_.begin(), connected_devices_.end(), 
-                     [&remote_id](const auto& pair) { return pair.first == remote_id; });
-                 
-                 if (it_connected != connected_devices_.end()) {
-                      solicited = true;
-                 } else {
-                      auto it_connecting = std::find_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(), 
-                          [&remote_id](const auto& pair) { return pair.first == remote_id; });
-                      
-                      if(it_connecting != currently_connecting_devices_.end()) {
-                           auto dev_obj = it_connecting->second;
-                           connected_devices_.emplace_back(remote_id, dev_obj);
-                           
-                           // Safe removal: use temporary variable to store index to delete
-                           currently_connecting_devices_.erase(
-                               std::remove_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(),
-                                   [&remote_id](const auto& pair) { return pair.first == remote_id; }
-                               ), 
-                               currently_connecting_devices_.end()
-                           );
-                           solicited = true;
-                      }
-                 }
-             }
+    std::string remote_id = uint64_to_mac_string(d.BluetoothAddress());
+    flutter::EncodableMap connection_state;
+    connection_state[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
 
-             if (solicited) {
-                connection_state[flutter::EncodableValue("connection_state")] = flutter::EncodableValue(1);
-                channel_->InvokeMethod("OnConnectionStateChanged", std::make_unique<flutter::EncodableValue>(connection_state));
+    if (d.ConnectionStatus() == BluetoothConnectionStatus::Connected) {
+         bool solicited = false;
+         {
+             std::lock_guard<std::mutex> lock(devices_mutex_);
+
+             auto it_connected = std::find_if(connected_devices_.begin(), connected_devices_.end(),
+                 [&remote_id](const auto& pair) { return pair.first == remote_id; });
+
+             if (it_connected != connected_devices_.end()) {
+                  solicited = true;
              } else {
-                Log("Unsolicited connection for %s, closing to prevent unintended auto-reconnect.", remote_id.c_str());
-                try { d.Close(); } catch(...) {}
+                  auto it_connecting = std::find_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(),
+                      [&remote_id](const auto& pair) { return pair.first == remote_id; });
+
+                  if(it_connecting != currently_connecting_devices_.end()) {
+                       auto dev_obj = it_connecting->second;
+                       connected_devices_.emplace_back(remote_id, dev_obj);
+
+                       // Safe removal: use temporary variable to store index to delete
+                       currently_connecting_devices_.erase(
+                           std::remove_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(),
+                               [&remote_id](const auto& pair) { return pair.first == remote_id; }
+                           ),
+                           currently_connecting_devices_.end()
+                       );
+                       solicited = true;
+                  }
              }
-        } else {
-            // Disconnection handling - immediately remove from connected list
-            Log("OnConnectionStatusChanged: device %s disconnected", remote_id.c_str());
-            
-            ClearDeviceResources(remote_id);
+         }
 
-            {
-                std::lock_guard<std::mutex> lock(devices_mutex_);
-                
-                // Remove device from vectors first
-                currently_connecting_devices_.erase(
-                    std::remove_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(),
-                        [&remote_id](const auto& pair) { return pair.first == remote_id; }
-                    ), 
-                    currently_connecting_devices_.end()
-                );
-
-                connected_devices_.erase(
-                    std::remove_if(connected_devices_.begin(), connected_devices_.end(),
-                        [&remote_id](const auto& pair) { return pair.first == remote_id; }
-                    ), 
-                    connected_devices_.end()
-                );
-            }
-            
-            // Close the device - similar to win_ble approach
-            try {
-                if (d) {
-                    d.Close();
-                }
-            } catch(...) {
-                Log("OnConnectionStatusChanged: error closing device %s", remote_id.c_str());
-            }
-
-            connection_state[flutter::EncodableValue("connection_state")] = flutter::EncodableValue(0);
+         if (solicited) {
+            connection_state[flutter::EncodableValue("connection_state")] = flutter::EncodableValue(1);
             channel_->InvokeMethod("OnConnectionStateChanged", std::make_unique<flutter::EncodableValue>(connection_state));
+         } else {
+            Log("Unsolicited connection for %s, closing to prevent unintended auto-reconnect.", remote_id.c_str());
+            try { d.Close(); } catch(...) {}
+         }
+    } else {
+        // Disconnection handling - immediately remove from connected list
+        Log("OnConnectionStatusChanged: device %s disconnected", remote_id.c_str());
+
+        ClearDeviceResources(remote_id);
+
+        {
+            std::lock_guard<std::mutex> lock(devices_mutex_);
+
+            // Remove device from vectors first
+            currently_connecting_devices_.erase(
+                std::remove_if(currently_connecting_devices_.begin(), currently_connecting_devices_.end(),
+                    [&remote_id](const auto& pair) { return pair.first == remote_id; }
+                ),
+                currently_connecting_devices_.end()
+            );
+
+            connected_devices_.erase(
+                std::remove_if(connected_devices_.begin(), connected_devices_.end(),
+                    [&remote_id](const auto& pair) { return pair.first == remote_id; }
+                ),
+                connected_devices_.end()
+            );
         }
-    }(device);
+
+        // Close the device - similar to win_ble approach
+        try {
+            if (d) {
+                d.Close();
+            }
+        } catch(...) {
+            Log("OnConnectionStatusChanged: error closing device %s", remote_id.c_str());
+        }
+
+        connection_state[flutter::EncodableValue("connection_state")] = flutter::EncodableValue(0);
+        channel_->InvokeMethod("OnConnectionStateChanged", std::make_unique<flutter::EncodableValue>(connection_state));
+    }
+
 }
 
 winrt::fire_and_forget FlutterBluePlusWinrtPlugin::DiscoverServicesAsync(
@@ -1168,6 +1176,19 @@ winrt::fire_and_forget FlutterBluePlusWinrtPlugin::DiscoverServicesAsync(
             if (servicesResult.Status() != GattCommunicationStatus::Success) {
                  error_msg = "GetGattServicesAsync failed";
             } else {
+                {
+                    std::lock_guard<std::mutex> cache_lock(gatt_cache_mutex_);
+                    service_cache_[remote_id].clear();
+                    const std::string prefix = remote_id + ":";
+                    for (auto it = characteristic_cache_.begin(); it != characteristic_cache_.end();) {
+                        if (it->first.compare(0, prefix.size(), prefix) == 0) it = characteristic_cache_.erase(it);
+                        else ++it;
+                    }
+                    for (auto it = descriptor_cache_.begin(); it != descriptor_cache_.end();) {
+                        if (it->first.compare(0, prefix.size(), prefix) == 0) it = descriptor_cache_.erase(it);
+                        else ++it;
+                    }
+                }
                 flutter::EncodableList servicesList;
                 for (auto service : servicesResult.Services()) {
                      {
@@ -1222,39 +1243,52 @@ winrt::fire_and_forget FlutterBluePlusWinrtPlugin::DiscoverServicesAsync(
     result_ptr->Error("discoverServices", error_msg);
 }
 
-void FlutterBluePlusWinrtPlugin::OnCharacteristicValueChanged(std::string remote_id, const GattCharacteristic& sender, const GattValueChangedEventArgs& args) {
-    [this, remote_id, sender, args, alive = is_alive_]() -> winrt::fire_and_forget {
-        try {
-            co_await ui_thread_;
-            if (!*alive) co_return;
-            flutter::EncodableMap response;
-            response[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
-            response[flutter::EncodableValue("service_uuid")] = flutter::EncodableValue(utils::to_uuid_string(sender.Service().Uuid()));
-            response[flutter::EncodableValue("characteristic_uuid")] = flutter::EncodableValue(utils::to_uuid_string(sender.Uuid()));
-            response[flutter::EncodableValue("instance_id")] = flutter::EncodableValue(static_cast<int32_t>(sender.AttributeHandle()));
-            response[flutter::EncodableValue("value")] = flutter::EncodableValue(utils::to_vector(args.CharacteristicValue()));
-            response[flutter::EncodableValue("success")] = flutter::EncodableValue(1);
-            response[flutter::EncodableValue("error_code")] = flutter::EncodableValue(0);
-            response[flutter::EncodableValue("error_string")] = flutter::EncodableValue("GATT_SUCCESS");
-            channel_->InvokeMethod("OnCharacteristicReceived", std::make_unique<flutter::EncodableValue>(response));
-        } catch(...) {}
-    }();
+void FlutterBluePlusWinrtPlugin::OnCharacteristicValueChanged(std::string remote_id, const GattCharacteristic& sender, const GattValueChangedEventArgs& args, std::string primary_service_uuid) {
+    HandleCharacteristicValueAsync(remote_id, sender, args, primary_service_uuid, is_alive_, ui_thread_);
+}
+
+winrt::fire_and_forget FlutterBluePlusWinrtPlugin::HandleCharacteristicValueAsync(
+    std::string remote_id, GattCharacteristic sender, GattValueChangedEventArgs args,
+    std::string primary_service_uuid, std::shared_ptr<std::atomic<bool>> alive, winrt::apartment_context ui) {
+    try {
+        co_await ui;
+        if (!*alive) co_return;
+        flutter::EncodableMap response;
+        response[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
+        if (!primary_service_uuid.empty()) {
+            response[flutter::EncodableValue("primary_service_uuid")] = flutter::EncodableValue(primary_service_uuid);
+        }
+        response[flutter::EncodableValue("service_uuid")] = flutter::EncodableValue(utils::to_uuid_string(sender.Service().Uuid()));
+        response[flutter::EncodableValue("characteristic_uuid")] = flutter::EncodableValue(utils::to_uuid_string(sender.Uuid()));
+        response[flutter::EncodableValue("instance_id")] = flutter::EncodableValue(static_cast<int32_t>(sender.AttributeHandle()));
+        response[flutter::EncodableValue("value")] = flutter::EncodableValue(utils::to_vector(args.CharacteristicValue()));
+        response[flutter::EncodableValue("success")] = flutter::EncodableValue(1);
+        response[flutter::EncodableValue("error_code")] = flutter::EncodableValue(0);
+        response[flutter::EncodableValue("error_string")] = flutter::EncodableValue("GATT_SUCCESS");
+        channel_->InvokeMethod("OnCharacteristicReceived", std::make_unique<flutter::EncodableValue>(response));
+    } catch(...) {}
+
 }
 
 void FlutterBluePlusWinrtPlugin::OnMaxPduSizeChanged(std::string remote_id, const GattSession& sender, const IInspectable&) {
-    [this, remote_id, sender, alive = is_alive_]() -> winrt::fire_and_forget {
-        try {
-            co_await ui_thread_;
-            if (!*alive) co_return;
-            flutter::EncodableMap response;
-            response[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
-            response[flutter::EncodableValue("mtu")] = flutter::EncodableValue(static_cast<int32_t>(sender.MaxPduSize()));
-            response[flutter::EncodableValue("success")] = flutter::EncodableValue(1);
-            response[flutter::EncodableValue("error_code")] = flutter::EncodableValue(0);
-            response[flutter::EncodableValue("error_string")] = flutter::EncodableValue("");
-            channel_->InvokeMethod("OnMtuChanged", std::make_unique<flutter::EncodableValue>(response));
-        } catch(...) {}
-    }();
+    HandleMaxPduSizeAsync(remote_id, sender, is_alive_, ui_thread_);
+}
+
+winrt::fire_and_forget FlutterBluePlusWinrtPlugin::HandleMaxPduSizeAsync(
+    std::string remote_id, GattSession sender, std::shared_ptr<std::atomic<bool>> alive,
+    winrt::apartment_context ui) {
+    try {
+        co_await ui;
+        if (!*alive) co_return;
+        flutter::EncodableMap response;
+        response[flutter::EncodableValue("remote_id")] = flutter::EncodableValue(remote_id);
+        response[flutter::EncodableValue("mtu")] = flutter::EncodableValue(static_cast<int32_t>(sender.MaxPduSize()));
+        response[flutter::EncodableValue("success")] = flutter::EncodableValue(1);
+        response[flutter::EncodableValue("error_code")] = flutter::EncodableValue(0);
+        response[flutter::EncodableValue("error_string")] = flutter::EncodableValue("");
+        channel_->InvokeMethod("OnMtuChanged", std::make_unique<flutter::EncodableValue>(response));
+    } catch(...) {}
+
 }
 
 winrt::fire_and_forget FlutterBluePlusWinrtPlugin::SetNotifyValueAsync(std::shared_ptr<flutter::EncodableMap> args_ptr) {
@@ -1332,8 +1366,8 @@ winrt::fire_and_forget FlutterBluePlusWinrtPlugin::SetNotifyValueAsync(std::shar
                             try { it->second.characteristic.as<GattCharacteristic>().ValueChanged(it->second.token); } catch(...) {}
                             subscribed_characteristics_.erase(it);
                         }
-                        auto token = targetChar.ValueChanged([this, remote_id](GattCharacteristic const& sender, GattValueChangedEventArgs const& args) {
-                            this->OnCharacteristicValueChanged(remote_id, sender, args);
+                        auto token = targetChar.ValueChanged([this, remote_id, primary_service_uuid_str](GattCharacteristic const& sender, GattValueChangedEventArgs const& args) {
+                            this->OnCharacteristicValueChanged(remote_id, sender, args, primary_service_uuid_str);
                         });
                         subscribed_characteristics_[token_key] = { targetChar, token };
                         success_event = true; error_string = "GATT_SUCCESS";
@@ -1500,17 +1534,14 @@ winrt::fire_and_forget FlutterBluePlusWinrtPlugin::ReadDescriptorAsync(flutter::
 
             GattDescriptor targetDesc = nullptr;
             if (instance_id != 0) {
-                std::string d_key = remote_id + ":" + std::to_string(instance_id);
+                std::string d_key = remote_id + ":" + std::to_string(instance_id) + ":" + utils::to_uuid_string(utils::parse_uuid(descriptor_uuid_hint));
                 std::lock_guard<std::mutex> cache_lock(gatt_cache_mutex_);
                 auto it_d = descriptor_cache_.find(d_key);
                 if (it_d != descriptor_cache_.end()) targetDesc = it_d->second.as<GattDescriptor>();
             }
 
             if (!targetDesc) {
-                GattCharacteristic targetChar = co_await this->GetCharacteristicByDescriptorHandleAsync(device, instance_id);
-                if (!targetChar) {
-                    targetChar = co_await this->GetCharacteristicInternalAsync(device, remote_id, service_uuid_hint, characteristic_uuid_hint, primary_service_uuid_str, instance_id);
-                }
+                GattCharacteristic targetChar = co_await this->GetCharacteristicInternalAsync(device, remote_id, service_uuid_hint, characteristic_uuid_hint, primary_service_uuid_str, instance_id);
 
                 if (targetChar) {
                     targetDesc = co_await GetDescriptorAsync(targetChar, descriptor_uuid_hint);
@@ -1573,7 +1604,7 @@ winrt::fire_and_forget FlutterBluePlusWinrtPlugin::WriteDescriptorAsync(flutter:
             
             GattDescriptor targetDesc = nullptr;
             if (instance_id != 0) {
-                std::string d_key = remote_id + ":" + std::to_string(instance_id);
+                std::string d_key = remote_id + ":" + std::to_string(instance_id) + ":" + utils::to_uuid_string(utils::parse_uuid(descriptor_uuid_hint));
                 std::lock_guard<std::mutex> cache_lock(gatt_cache_mutex_);
                 auto it_d = descriptor_cache_.find(d_key);
                 if (it_d != descriptor_cache_.end()) targetDesc = it_d->second.as<GattDescriptor>();

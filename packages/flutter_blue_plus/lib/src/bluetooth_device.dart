@@ -5,6 +5,42 @@
 part of '../flutter_blue_plus.dart';
 
 class BluetoothDevice {
+  // A timed-out native connect can still submit work later (e.g. after a
+  // permission dialog). Keep its cancellation barrier until that call settles
+  // and native confirms disconnection; a new connect must not overtake it.
+  static final Map<DeviceIdentifier, _PendingConnection> _pendingConnections = {};
+
+  Future<void> _cancelPendingConnection(_PendingConnection pending, {int androidDelay = 2000}) {
+    pending.cancelled = true;
+    return pending.cleanup ??= _finishConnectionCancellation(pending, androidDelay).whenComplete(() {
+      pending.cleanup = null; // Failed cleanup may be retried, but stays fenced.
+    });
+  }
+
+  Future<void> _finishConnectionCancellation(_PendingConnection pending, int androidDelay) async {
+    await _ensureAndroidDisconnectionDelay(androidDelay);
+    final earlyCancel = FlutterBluePlus._invokePlatform(
+        () => FlutterBluePlusPlatform.instance.disconnect(BmDisconnectRequest(remoteId: remoteId)));
+    // Try to interrupt promptly, then cancel again after any late submission.
+    await Future.wait<void>([
+      pending.invocation.then<void>((_) {}, onError: (Object _) {}),
+      earlyCancel.then<void>((_) {}, onError: (Object _) {}),
+    ]);
+    final scope =
+        _OperationScope(this, "cancelConnection", const Duration(seconds: 35), connected: false, adapter: false);
+    try {
+      final disconnected = scope.first(_responseStreams.disconnected);
+      final changed = await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.disconnect(BmDisconnectRequest(remoteId: remoteId))));
+      if (changed) await scope.wait(disconnected);
+      if (identical(_pendingConnections[remoteId], pending)) _pendingConnections.remove(remoteId);
+      _OperationScope._needsReconnect.remove(remoteId);
+      if (!kIsWeb && Platform.isAndroid) FlutterBluePlus._connectTimestamp.remove(remoteId);
+    } finally {
+      await scope.close();
+    }
+  }
+
   final DeviceIdentifier remoteId;
   _BluetoothDeviceResponseStreams? _cachedResponseStreams;
 
@@ -117,13 +153,21 @@ class BluetoothDevice {
 
     // make sure no one else is calling disconnect on this device
     _Mutex dmtx = _MutexFactory.getMutexForKey(FlutterBluePlus._disconnectMutexKey(remoteId));
-    bool dtook = await dmtx.take();
+    bool dtook = await dmtx.take(timeout: timeout, function: "connect");
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
-
     try {
+      await mtx.take(timeout: timeout, function: "connect");
+    } catch (_) {
+      dmtx.give();
+      rethrow;
+    }
+    final scope = _OperationScope(this, "connect", timeout, connected: false);
+    _PendingConnection? attempt;
+    try {
+      final pending = _pendingConnections[remoteId];
+      if (pending != null) await scope.wait(_cancelPendingConnection(pending));
       // remember auto connect value
       if (autoConnect) {
         FlutterBluePlus._autoConnect.add(remoteId);
@@ -135,7 +179,7 @@ class BluetoothDevice {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmConnectionStateResponse> futureState = _responseStreams.connectionState.first;
+      Future<BmConnectionStateResponse> futureState = scope.first(_responseStreams.connectionState);
 
       // record connection time
       if (!kIsWeb && Platform.isAndroid) {
@@ -148,7 +192,12 @@ class BluetoothDevice {
         // we'll initiate the autoconnect later when the adapter is turned on
         // note(web): we cannot get adapter state, so we must try the connection anyway
       } else {
-        changed = await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.connect(request));
+        changed = await scope.invoke(() {
+          final invocation = FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.connect(request));
+          attempt = _PendingConnection(invocation);
+          _pendingConnections[remoteId] = attempt!;
+          return invocation;
+        });
       }
 
       // we return the disconnect mutex now so that this
@@ -157,15 +206,7 @@ class BluetoothDevice {
 
       // only wait for connection if we weren't already connected
       if (changed && !autoConnect) {
-        BmConnectionStateResponse response =
-            await futureState.fbpEnsureAdapterIsOn("connect").fbpTimeout(timeout, "connect").catchError((e) async {
-          if (e is FlutterBluePlusException && e.code == FbpErrorCode.timeout.index) {
-            FlutterBluePlusPlatform.log("[FBP] connection timeout");
-            await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance
-                .disconnect(BmDisconnectRequest(remoteId: remoteId))); // cancel connection attempt
-          }
-          throw e;
-        });
+        BmConnectionStateResponse response = await scope.wait(futureState);
 
         // failure?
         if (response.connectionState == BmConnectionStateEnum.disconnected) {
@@ -178,7 +219,21 @@ class BluetoothDevice {
           }
         }
       }
+      if (attempt?.cancelled == true) {
+        throw FlutterBluePlusException(
+            ErrorPlatform.fbp, "connect", FbpErrorCode.connectionCanceled.index, "connection canceled");
+      }
+      if (attempt != null && identical(_pendingConnections[remoteId], attempt)) {
+        _pendingConnections.remove(remoteId);
+      }
+    } catch (_) {
+      if (attempt != null && identical(_pendingConnections[remoteId], attempt)) {
+        FlutterBluePlus._autoConnect.remove(remoteId);
+        _cancelPendingConnection(attempt!).ignore();
+      }
+      rethrow;
     } finally {
+      await scope.close();
       if (dtook) {
         dmtx.give();
       }
@@ -208,41 +263,53 @@ class BluetoothDevice {
   }) async {
     // Only allow a single disconnect operation at a time on this device
     _Mutex dtx = _MutexFactory.getMutexForKey(FlutterBluePlus._disconnectMutexKey(remoteId));
-    await dtx.take();
+    await dtx.take(timeout: timeout, function: "disconnect");
 
     // Queue behind other operations for this device only.
-    _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    if (queue) {
-      await mtx.take();
+    final mtx = queue ? _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId)) : null;
+    try {
+      if (queue) await mtx!.take(timeout: timeout, function: "disconnect");
+    } catch (_) {
+      dtx.give();
+      rethrow;
     }
-
+    final scope = _OperationScope(this, "disconnect", timeout, connected: false, adapter: false);
     try {
       // remove from auto connect list if there
       FlutterBluePlus._autoConnect.remove(remoteId);
 
+      final pending = _pendingConnections[remoteId];
+      if (pending != null) {
+        await scope.wait(_cancelPendingConnection(pending, androidDelay: androidDelay));
+        _OperationScope._needsReconnect.remove(remoteId);
+        return;
+      }
+
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmConnectionStateResponse> futureState = _responseStreams.disconnected.first;
+      Future<BmConnectionStateResponse> futureState = scope.first(_responseStreams.disconnected);
 
       // Workaround Android race condition
-      await _ensureAndroidDisconnectionDelay(androidDelay);
+      await scope.wait(_ensureAndroidDisconnectionDelay(androidDelay));
 
       // invoke
-      bool changed = await FlutterBluePlus._invokePlatform(
-          () => FlutterBluePlusPlatform.instance.disconnect(BmDisconnectRequest(remoteId: remoteId)));
+      bool changed = await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.disconnect(BmDisconnectRequest(remoteId: remoteId))));
 
       // only wait for disconnection if weren't already disconnected
       if (changed) {
-        await futureState.fbpEnsureAdapterIsOn("disconnect").fbpTimeout(timeout, "disconnect");
+        await scope.wait(futureState);
       }
 
+      _OperationScope._needsReconnect.remove(remoteId);
       if (!kIsWeb && Platform.isAndroid) {
         // Disconnected, remove connect timestamp
         FlutterBluePlus._connectTimestamp.remove(remoteId);
       }
     } finally {
+      await scope.close();
       dtx.give();
       if (queue) {
-        mtx.give();
+        mtx!.give();
       }
     }
   }
@@ -262,23 +329,21 @@ class BluetoothDevice {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "discoverServices");
 
     List<BluetoothService> result = [];
 
+    final scope = _OperationScope(this, "discoverServices", timeout);
     try {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDiscoverServicesResult> futureResponse = _responseStreams.discoveredServices.first;
+      Future<BmDiscoverServicesResult> futureResponse = scope.first(_responseStreams.discoveredServices);
 
       // invoke
-      await FlutterBluePlus._invokePlatform(
-          () => FlutterBluePlusPlatform.instance.discoverServices(BmDiscoverServicesRequest(remoteId: remoteId)));
+      await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.discoverServices(BmDiscoverServicesRequest(remoteId: remoteId))));
 
       // wait for response
-      BmDiscoverServicesResult response = await futureResponse
-          .fbpEnsureAdapterIsOn("discoverServices")
-          .fbpEnsureDeviceIsConnected(this, "discoverServices")
-          .fbpTimeout(timeout, "discoverServices");
+      BmDiscoverServicesResult response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
@@ -290,6 +355,7 @@ class BluetoothDevice {
 
       result = result;
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -368,23 +434,21 @@ class BluetoothDevice {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "readRssi");
 
     int rssi = 0;
 
+    final scope = _OperationScope(this, "readRssi", timeout);
     try {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmReadRssiResult> futureResponse = _responseStreams.readRssi.first;
+      Future<BmReadRssiResult> futureResponse = scope.first(_responseStreams.readRssi);
 
       // invoke
-      await FlutterBluePlus._invokePlatform(
-          () => FlutterBluePlusPlatform.instance.readRssi(BmReadRssiRequest(remoteId: remoteId)));
+      await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.readRssi(BmReadRssiRequest(remoteId: remoteId))));
 
       // wait for response
-      BmReadRssiResult response = await futureResponse
-          .fbpEnsureAdapterIsOn("readRssi")
-          .fbpEnsureDeviceIsConnected(this, "readRssi")
-          .fbpTimeout(timeout, "readRssi");
+      BmReadRssiResult response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
@@ -392,6 +456,7 @@ class BluetoothDevice {
       }
       rssi = response.rssi;
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -416,7 +481,7 @@ class BluetoothDevice {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "requestMtu");
 
     // predelay
     if (predelay > 0) {
@@ -441,6 +506,7 @@ class BluetoothDevice {
 
     var mtu = 0;
 
+    final scope = _OperationScope(this, "requestMtu", timeout);
     try {
       var request = BmMtuChangeRequest(
         remoteId: remoteId,
@@ -448,17 +514,16 @@ class BluetoothDevice {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<int> futureResponse = _responseStreams.mtu.first;
+      Future<int> futureResponse = scope.first(_responseStreams.mtu);
 
       // invoke
-      await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.requestMtu(request));
+      await scope
+          .invoke(() => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.requestMtu(request)));
 
       // wait for response
-      mtu = await futureResponse
-          .fbpEnsureAdapterIsOn("requestMtu")
-          .fbpEnsureDeviceIsConnected(this, "requestMtu")
-          .fbpTimeout(timeout, "requestMtu");
+      mtu = await scope.wait(futureResponse);
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -538,22 +603,20 @@ class BluetoothDevice {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "createBond");
 
+    final scope = _OperationScope(this, "createBond", timeout);
     try {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmBondStateResponse> futureResponse = _responseStreams.bondStateChange.first;
+      Future<BmBondStateResponse> futureResponse = scope.first(_responseStreams.bondStateChange);
 
       // invoke
-      bool changed = await FlutterBluePlus._invokePlatform(
-          () => FlutterBluePlusPlatform.instance.createBond(BmCreateBondRequest(remoteId: remoteId, pin: pin)));
+      bool changed = await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.createBond(BmCreateBondRequest(remoteId: remoteId, pin: pin))));
 
       // only wait for 'bonded' if we weren't already bonded
       if (changed) {
-        BmBondStateResponse bs = await futureResponse
-            .fbpEnsureAdapterIsOn("createBond")
-            .fbpEnsureDeviceIsConnected(this, "createBond")
-            .fbpTimeout(timeout, "createBond");
+        BmBondStateResponse bs = await scope.wait(futureResponse);
 
         // success?
         if (bs.bondState != BmBondStateEnum.bonded) {
@@ -562,6 +625,7 @@ class BluetoothDevice {
         }
       }
     } finally {
+      await scope.close();
       mtx.give();
     }
   }
@@ -575,19 +639,20 @@ class BluetoothDevice {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "removeBond");
 
+    final scope = _OperationScope(this, "removeBond", timeout, connected: false);
     try {
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmBondStateResponse> futureResponse = _responseStreams.bondStateChange.first;
+      Future<BmBondStateResponse> futureResponse = scope.first(_responseStreams.bondStateChange);
 
       // invoke
-      bool changed = await FlutterBluePlus._invokePlatform(
-          () => FlutterBluePlusPlatform.instance.removeBond(BmRemoveBondRequest(remoteId: remoteId)));
+      bool changed = await scope.invoke(() => FlutterBluePlus._invokePlatform(
+          () => FlutterBluePlusPlatform.instance.removeBond(BmRemoveBondRequest(remoteId: remoteId))));
 
       // only wait for 'unbonded' state if we weren't already unbonded
       if (changed) {
-        BmBondStateResponse bs = await futureResponse.fbpTimeout(timeout, "removeBond");
+        BmBondStateResponse bs = await scope.wait(futureResponse);
 
         // success?
         if (bs.bondState != BmBondStateEnum.none) {
@@ -596,6 +661,7 @@ class BluetoothDevice {
         }
       }
     } finally {
+      await scope.close();
       mtx.give();
     }
   }
@@ -687,6 +753,13 @@ class BluetoothDevice {
   }
 }
 
+class _PendingConnection {
+  final Future<bool> invocation;
+  Future<void>? cleanup;
+  bool cancelled = false;
+  _PendingConnection(this.invocation);
+}
+
 class _BluetoothDeviceResponseStreams {
   final DeviceIdentifier remoteId;
 
@@ -708,8 +781,7 @@ class _BluetoothDeviceResponseStreams {
       .where((response) => response.remoteId == remoteId)
       .map((response) => response.mtu);
 
-  late final Stream<BmBondStateResponse> bondStateChange =
-      FlutterBluePlusPlatform.instance.onBondStateChanged.where(
-        (response) => response.remoteId == remoteId && response.bondState != BmBondStateEnum.bonding,
-      );
+  late final Stream<BmBondStateResponse> bondStateChange = FlutterBluePlusPlatform.instance.onBondStateChanged.where(
+    (response) => response.remoteId == remoteId && response.bondState != BmBondStateEnum.bonding,
+  );
 }

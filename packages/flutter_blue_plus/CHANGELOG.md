@@ -1,3 +1,17 @@
+## Unreleased
+* **[Fix]** Fence timed-out connection attempts until native submission and cancellation settle; keep retries and GATT operations isolated during cleanup.
+* **[Fix]** Let turnOn time out while its adapter query is pending, and accept ON events independently of that query.
+* **[Fix]** Cancel operation listeners on native failure, timeout, disconnect, and skipped responses.
+* **[Fix]** Cover native invocation with operation deadlines and require reconnect after submitted GATT operations time out.
+* **[Performance]** Use FIFO mutex waiters, cancel timed-out queue entries, and release idle device mutexes.
+* **[Fix]** Share platform startup and allow failed initialization to retry.
+* **[Fix]** Android: ignore duplicate connected callbacks and stale callbacks from previous GATT clients (#1121).
+* **[Fix]** Android: avoid crashes when reading adapter or device names without `BLUETOOTH_CONNECT` permission (#1340).
+* **[Fix]** Darwin: continue service discovery past UUIDs restricted by CoreBluetooth, including Matter attributes (#1344).
+* **[Performance]** Darwin: reduce MTU polling from 10Hz to 1Hz after values settle, retaining delayed negotiation updates; stop when all devices disconnect (#1339).
+* **[Improve]** Explicitly type the `setLogLevel` color parameter as `bool` (#1341).
+* **[Improve]** Remove the redundant future return from characteristic writes.
+
 ## 2.3.11
 * **[Improve]** Unify the FlutterBluePlus version log into a single string.
 

@@ -1,5 +1,116 @@
 part of '../flutter_blue_plus.dart';
 
+// Own all resources for one operation, including the period spent awaiting the
+// native method result. Future.timeout alone cannot cancel stream subscriptions.
+class _OperationScope {
+  static final Set<DeviceIdentifier> _needsReconnect = {};
+  final BluetoothDevice? device;
+  final String function;
+  final _interrupted = Completer<Never>();
+  final List<StreamSubscription> _subscriptions = [];
+  Timer? _timer;
+  Object? _failure;
+  StackTrace? _failureStack;
+  bool _invoked = false;
+
+  _OperationScope(this.device, this.function, Duration timeout, {bool connected = true, bool adapter = true}) {
+    _interrupted.future.ignore();
+    try {
+      _start(timeout, connected: connected, adapter: adapter);
+    } catch (error, stack) {
+      _fail(error, stack);
+    }
+  }
+
+  void _start(Duration timeout, {required bool connected, required bool adapter}) {
+    if (connected && device != null) {
+      if (_needsReconnect.contains(device!.remoteId) ||
+          BluetoothDevice._pendingConnections.containsKey(device!.remoteId)) {
+        _fail(FlutterBluePlusException(ErrorPlatform.fbp, function, FbpErrorCode.timeout.index,
+            "A previous operation timed out; disconnect and reconnect before issuing more operations"));
+      } else if (device!.isDisconnected) {
+        _fail(FlutterBluePlusException(
+            ErrorPlatform.fbp, function, FbpErrorCode.deviceIsDisconnected.index, "Device is disconnected"));
+      }
+      _subscriptions.add(device!.connectionState.listen((state) {
+        if (state == BluetoothConnectionState.disconnected) {
+          _fail(FlutterBluePlusException(
+              ErrorPlatform.fbp, function, FbpErrorCode.deviceIsDisconnected.index, "Device is disconnected"));
+        }
+      }));
+    }
+    if (adapter) {
+      if (FlutterBluePlus.adapterStateNow == BluetoothAdapterState.off ||
+          FlutterBluePlus.adapterStateNow == BluetoothAdapterState.turningOff) {
+        _fail(FlutterBluePlusException(
+            ErrorPlatform.fbp, function, FbpErrorCode.adapterIsOff.index, "Bluetooth adapter is off"));
+      }
+      _subscriptions.add(FlutterBluePlusPlatform.instance.onAdapterStateChanged.listen((event) {
+        if (event.adapterState == BmAdapterStateEnum.off || event.adapterState == BmAdapterStateEnum.turningOff) {
+          _fail(FlutterBluePlusException(
+              ErrorPlatform.fbp, function, FbpErrorCode.adapterIsOff.index, "Bluetooth adapter is off"));
+        }
+      }, onError: (Object e, StackTrace s) => _fail(e, s)));
+    }
+    _timer = Timer(timeout, () {
+      // A timed-out GATT request can still be running in native code. Fence
+      // subsequent requests until disconnect, rather than overlap that request
+      // or let its late callback satisfy a new operation.
+      if (_invoked && connected && device != null) _needsReconnect.add(device!.remoteId);
+      _fail(FlutterBluePlusException(
+          ErrorPlatform.fbp, function, FbpErrorCode.timeout.index, "Timed out after ${timeout.inMilliseconds}ms"));
+    });
+  }
+
+  void _fail(Object error, [StackTrace? stack]) {
+    if (_interrupted.isCompleted) return;
+    _failure = error;
+    _failureStack = stack ?? StackTrace.current;
+    _interrupted.completeError(error, _failureStack);
+  }
+
+  Future<T> first<T>(Stream<T> stream) {
+    final value = Completer<T>();
+    value.future.ignore(); // invoke can fail before this result is awaited
+    StreamSubscription<T>? subscription;
+    subscription = stream.listen((event) {
+      if (!value.isCompleted) value.complete(event);
+      subscription?.cancel();
+    }, onError: (Object e, StackTrace s) {
+      if (!value.isCompleted) value.completeError(e, s);
+      subscription?.cancel();
+    }, onDone: () {
+      if (!value.isCompleted) value.completeError(StateError("Response stream closed"));
+    });
+    _subscriptions.add(subscription);
+    return value.future;
+  }
+
+  Future<T> wait<T>(Future<T> future) {
+    // Always attach to the original Future, including when already interrupted,
+    // so a late native rejection cannot become an unhandled asynchronous error.
+    if (_failure != null) {
+      future.ignore();
+      return Future.error(_failure!, _failureStack);
+    }
+    return Future.any([future, _interrupted.future]);
+  }
+
+  Future<T> invoke<T>(Future<T> Function() call) {
+    if (_failure != null) return Future.error(_failure!, _failureStack);
+    _invoked = true;
+    return wait(Future.sync(call));
+  }
+
+  Future<void> close() async {
+    _timer?.cancel();
+    for (final subscription in _subscriptions) {
+      await subscription.cancel();
+    }
+    _subscriptions.clear();
+  }
+}
+
 extension AddOrUpdate<T> on List<T> {
   /// add an item to a list, or update item if it already exists
   void addOrUpdate(T item) {
@@ -39,68 +150,6 @@ extension FutureTimeout<T> on Future<T> {
       throw FlutterBluePlusException(
           ErrorPlatform.fbp, function, FbpErrorCode.timeout.index, "Timed out after ${duration.inMilliseconds}ms");
     });
-  }
-
-  Future<T> fbpEnsureDeviceIsConnected(BluetoothDevice device, String function) {
-    // Create a completer to represent the result of this extended Future.
-    var completer = Completer<T>();
-
-    // disconnection listener.
-    var subscription = device.connectionState.listen((event) {
-      if (event == BluetoothConnectionState.disconnected) {
-        if (!completer.isCompleted) {
-          completer.completeError(FlutterBluePlusException(
-              ErrorPlatform.fbp, function, FbpErrorCode.deviceIsDisconnected.index, "Device is disconnected"));
-        }
-      }
-    });
-
-    // When the original future completes
-    // complete our completer and cancel the subscription.
-    then((value) {
-      if (!completer.isCompleted) {
-        subscription.cancel();
-        completer.complete(value);
-      }
-    }).catchError((error) {
-      if (!completer.isCompleted) {
-        subscription.cancel();
-        completer.completeError(error);
-      }
-    });
-
-    return completer.future;
-  }
-
-  Future<T> fbpEnsureAdapterIsOn(String function) {
-    // Create a completer to represent the result of this extended Future.
-    var completer = Completer<T>();
-
-    // disconnection listener.
-    var subscription = FlutterBluePlus.adapterState.listen((event) {
-      if (event == BluetoothAdapterState.off || event == BluetoothAdapterState.turningOff) {
-        if (!completer.isCompleted) {
-          completer.completeError(FlutterBluePlusException(
-              ErrorPlatform.fbp, function, FbpErrorCode.adapterIsOff.index, "Bluetooth adapter is off"));
-        }
-      }
-    });
-
-    // When the original future completes
-    // complete our completer and cancel the subscription.
-    then((value) {
-      if (!completer.isCompleted) {
-        subscription.cancel();
-        completer.complete(value);
-      }
-    }).catchError((error) {
-      if (!completer.isCompleted) {
-        subscription.cancel();
-        completer.completeError(error);
-      }
-    });
-
-    return completer.future;
   }
 }
 

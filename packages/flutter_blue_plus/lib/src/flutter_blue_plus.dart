@@ -124,8 +124,7 @@ class FlutterBluePlus {
   ///   to proceed concurrently, while still serializing operations per device.
   ///
   /// We recommend [OperationQueueMode.perDevice] for new apps.
-  /// [OperationQueueMode.global] remains the default for backward
-  /// compatibility.
+  /// [OperationQueueMode.perDevice] is the default.
   ///
   /// This is useful if your app talks to multiple devices at the same time
   /// as it allows simultaneous device writing, discovery, and reads.
@@ -179,26 +178,36 @@ class FlutterBluePlus {
 
   /// Turn on Bluetooth (Android & OHOS only).
   static Future<void> turnOn({Duration timeout = const Duration(seconds: 60)}) async {
-    var responseStream = FlutterBluePlusPlatform.instance.onTurnOnResponse;
-
-    // Start listening now, before invokeMethod, to ensure we don't miss the response
-    Future<BmTurnOnResponse> futureResponse = responseStream.first;
-
-    // invoke
-    bool changed = await _invokePlatform(() => FlutterBluePlusPlatform.instance.turnOn(BmTurnOnRequest()));
-
-    // only wait if bluetooth was off
-    if (changed) {
-      // wait for response
-      BmTurnOnResponse response = await futureResponse.fbpTimeout(timeout, "turnOn");
-
-      // check response
-      if (response.userAccepted == false) {
-        throw FlutterBluePlusException(ErrorPlatform.fbp, "turnOn", FbpErrorCode.userRejected.index, "user rejected");
+    final scope = _OperationScope(null, "turnOn", timeout, connected: false, adapter: false);
+    try {
+      final futureResponse = scope.first(FlutterBluePlusPlatform.instance.onTurnOnResponse);
+      bool changed =
+          await scope.invoke(() => _invokePlatform(() => FlutterBluePlusPlatform.instance.turnOn(BmTurnOnRequest())));
+      if (changed) {
+        final response = await scope.wait(futureResponse);
+        if (!response.userAccepted) {
+          throw FlutterBluePlusException(ErrorPlatform.fbp, "turnOn", FbpErrorCode.userRejected.index, "user rejected");
+        }
+        // Subscribe before querying. adapterState is async*: cancelling it while
+        // getAdapterState is pending would block the timeout's finally clause.
+        bool adapterEventSeen = false;
+        final poweredOn = scope.first(FlutterBluePlusPlatform.instance.onAdapterStateChanged.where((s) {
+          adapterEventSeen = true;
+          return s.adapterState == BmAdapterStateEnum.on;
+        }));
+        if (adapterStateNow != BluetoothAdapterState.on) {
+          final state = await scope.invoke(() => Future.any([
+                poweredOn,
+                _invokePlatform(
+                    () => FlutterBluePlusPlatform.instance.getAdapterState(BmBluetoothAdapterStateRequest()))
+              ]));
+          // A newer event takes precedence over the query's snapshot.
+          if (!adapterEventSeen) _adapterStateNow = state.adapterState;
+          if (adapterStateNow != BluetoothAdapterState.on) await scope.wait(poweredOn);
+        }
       }
-
-      // wait for adapter to turn on
-      await adapterState.where((s) => s == BluetoothAdapterState.on).first.fbpTimeout(timeout, "turnOn");
+    } finally {
+      await scope.close();
     }
   }
 
@@ -462,7 +471,7 @@ class FlutterBluePlus {
   }
 
   /// Sets the internal FlutterBlue log level
-  static Future<void> setLogLevel(LogLevel level, {color = true}) async {
+  static Future<void> setLogLevel(LogLevel level, {bool color = true}) async {
     _logLevel = level;
     await _invokePlatform(
         () => FlutterBluePlusPlatform.instance.setLogLevel(BmSetLogLevelRequest(logLevel: level, logColor: color)));
@@ -504,9 +513,7 @@ class FlutterBluePlus {
       }
       if (r.adapterState == BmAdapterStateEnum.on) {
         for (DeviceIdentifier d in _autoConnect) {
-          BluetoothDevice(remoteId: d)
-              .connect(autoConnect: true, mtu: null)
-              .onError((e, s) {
+          BluetoothDevice(remoteId: d).connect(autoConnect: true, mtu: null).onError((e, s) {
             if (logLevel != LogLevel.none) {
               FlutterBluePlusPlatform.log("[FBP] [AutoConnect] connection failed: $e");
             }
@@ -519,6 +526,7 @@ class FlutterBluePlus {
     FlutterBluePlusPlatform.instance.onConnectionStateChanged.listen((r) {
       _connectionStates[r.remoteId] = r;
       if (r.connectionState == BmConnectionStateEnum.disconnected) {
+        _OperationScope._needsReconnect.remove(r.remoteId);
         // clear mtu
         _mtuValues.remove(r.remoteId);
 
@@ -628,14 +636,12 @@ class FlutterBluePlus {
     // invoke
     return await invoke();
   }
-
 }
 
 enum OperationQueueMode {
   /// Queue all BLE operations behind a single global mutex.
   ///
-  /// This is the default and preserves the historical behavior of
-  /// `flutter_blue_plus`.
+  /// This preserves the historical behavior of `flutter_blue_plus`.
   global,
 
   /// Queue BLE operations independently for each connected device.
@@ -784,7 +790,6 @@ class AdvertisementData {
         'serviceUuids: $serviceUuids'
         '}';
   }
-
 }
 
 enum ErrorPlatform {
@@ -844,5 +849,4 @@ class FlutterBluePlusException implements Exception {
     String sPlatform = platform.toString().split('.').last;
     return 'FlutterBluePlusException | $function | $sPlatform-code: $code | $description';
   }
-
 }

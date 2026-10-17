@@ -108,11 +108,12 @@ class BluetoothDescriptor {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "readDescriptor");
 
     // return value
     List<int> readValue = [];
 
+    final scope = _OperationScope(device, "readDescriptor", timeout);
     try {
       var request = BmReadDescriptorRequest(
         remoteId: remoteId,
@@ -124,25 +125,21 @@ class BluetoothDescriptor {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse =
-          (_cachedOnReadStream ??= FlutterBluePlusPlatform.instance.onDescriptorRead
-              .where((p) =>
-                  p.remoteId == remoteId &&
-                  p.primaryServiceUuid == primaryServiceUuid &&
-                  p.serviceUuid == serviceUuid &&
-                  p.characteristicUuid == characteristicUuid &&
-                  p.instanceId == instanceId &&
-                  p.descriptorUuid == descriptorUuid))
-          .first;
+      Future<BmDescriptorData> futureResponse = scope.first((_cachedOnReadStream ??=
+          FlutterBluePlusPlatform.instance.onDescriptorRead.where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.instanceId == instanceId &&
+              p.descriptorUuid == descriptorUuid)));
 
       // invoke
-      await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readDescriptor(request));
+      await scope.invoke(
+          () => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.readDescriptor(request)));
 
       // wait for response
-      BmDescriptorData response = await futureResponse
-          .fbpEnsureAdapterIsOn("readDescriptor")
-          .fbpEnsureDeviceIsConnected(device, "readDescriptor")
-          .fbpTimeout(timeout, "readDescriptor");
+      BmDescriptorData response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
@@ -151,6 +148,7 @@ class BluetoothDescriptor {
 
       readValue = response.value;
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -167,8 +165,9 @@ class BluetoothDescriptor {
 
     // Only allow a single BLE operation to be underway per device.
     _Mutex mtx = _MutexFactory.getMutexForKey(FlutterBluePlus._bleOperationMutexKey(remoteId));
-    await mtx.take();
+    await mtx.take(timeout: timeout, function: "writeDescriptor");
 
+    final scope = _OperationScope(device, "writeDescriptor", timeout);
     try {
       var request = BmWriteDescriptorRequest(
         remoteId: remoteId,
@@ -181,31 +180,28 @@ class BluetoothDescriptor {
       );
 
       // Start listening now, before invokeMethod, to ensure we don't miss the response
-      Future<BmDescriptorData> futureResponse =
-          (_cachedOnWrittenStream ??= FlutterBluePlusPlatform.instance.onDescriptorWritten
-              .where((p) =>
-                  p.remoteId == remoteId &&
-                  p.primaryServiceUuid == primaryServiceUuid &&
-                  p.serviceUuid == serviceUuid &&
-                  p.characteristicUuid == characteristicUuid &&
-                  p.instanceId == instanceId &&
-                  p.descriptorUuid == descriptorUuid))
-          .first;
+      Future<BmDescriptorData> futureResponse = scope.first((_cachedOnWrittenStream ??=
+          FlutterBluePlusPlatform.instance.onDescriptorWritten.where((p) =>
+              p.remoteId == remoteId &&
+              p.primaryServiceUuid == primaryServiceUuid &&
+              p.serviceUuid == serviceUuid &&
+              p.characteristicUuid == characteristicUuid &&
+              p.instanceId == instanceId &&
+              p.descriptorUuid == descriptorUuid)));
 
       // invoke
-      await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeDescriptor(request));
+      await scope.invoke(
+          () => FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.writeDescriptor(request)));
 
       // wait for response
-      BmDescriptorData response = await futureResponse
-          .fbpEnsureAdapterIsOn("writeDescriptor")
-          .fbpEnsureDeviceIsConnected(device, "writeDescriptor")
-          .fbpTimeout(timeout, "writeDescriptor");
+      BmDescriptorData response = await scope.wait(futureResponse);
 
       // failed?
       if (!response.success) {
         throw FlutterBluePlusException(_nativeError, "writeDescriptor", response.errorCode, response.errorString);
       }
     } finally {
+      await scope.close();
       mtx.give();
     }
 
@@ -224,5 +220,4 @@ class BluetoothDescriptor {
         'lastValue: $lastValue'
         '}';
   }
-
 }
