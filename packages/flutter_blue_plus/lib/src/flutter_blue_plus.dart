@@ -109,10 +109,10 @@ class FlutterBluePlus {
   /// adapter state, and handle platform-specific requirements.
   ///
   /// ```dart
-  /// await FlutterBluePlus.blePermission.requestPermission();
-  /// bool ready = await FlutterBluePlus.blePermission.isReady();
+  /// await FlutterBluePlus.permission.requestPermission();
+  /// bool ready = await FlutterBluePlus.permission.isReady();
   /// ```
-  static BlePermission get blePermission => BlePermission.instance;
+  static BlePermission get permission => BlePermission.instance;
 
   /// Sets how BLE operations are queued.
   ///
