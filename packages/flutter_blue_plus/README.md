@@ -81,6 +81,22 @@ It is maintained by [@chan150](https://github.com/chan150).
 
 flutter_blue_plus supports [OpenHarmony](https://www.openharmony.cn/) via the built-in `flutter_blue_plus_ohos` package.
 
+### Consuming the federated monorepo from Git
+
+The Android, Darwin, OHOS, and platform-interface packages must resolve from the
+same repository ref. Use the app-facing package as the only direct dependency:
+
+```yaml
+flutter_blue_plus:
+  git:
+    url: https://github.com/shingohu/flutter_blue_plus.git
+    ref: 2.0.1
+    path: packages/flutter_blue_plus
+```
+
+Do not add the sibling packages separately. Their `pubspec.yaml` files use the
+same Git URL and ref so the whole federated set stays on one source revision.
+
 To use, add the following to your `pubspec.yaml`:
 
 ```yaml

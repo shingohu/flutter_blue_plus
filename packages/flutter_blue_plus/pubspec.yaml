@@ -24,21 +24,45 @@ dependencies:
   #  - avoids pub.dev warnings about pinned dependencies
   #  - still forces all platform packages to a specific version
   flutter_blue_plus_platform_interface:
-    path: ../flutter_blue_plus_platform_interface
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_platform_interface
   flutter_blue_plus_android:
-    path: ../flutter_blue_plus_android
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_android
   flutter_blue_plus_darwin:
-    path: ../flutter_blue_plus_darwin
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_darwin
   flutter_blue_plus_linux:
-    path: ../flutter_blue_plus_linux
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_linux
   flutter_blue_plus_web:
-    path: ../flutter_blue_plus_web
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_web
   flutter_blue_plus_winrt:
-    path: ../flutter_blue_plus_winrt
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_winrt
   flutter_blue_plus_ohos:
-    path: ../flutter_blue_plus_ohos
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/flutter_blue_plus_ohos
   ble_permission:
-    path: ../ble_permission
+    git:
+      url: https://github.com/shingohu/flutter_blue_plus.git
+      ref: 2.0.1
+      path: packages/ble_permission
 
 dev_dependencies:
   flutter_lints: ^6.0.0
