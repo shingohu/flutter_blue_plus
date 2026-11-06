@@ -11,8 +11,8 @@ import 'package:flutter/services.dart';
 ///
 /// Usage:
 /// ```dart
-/// await FlutterBluePlus.blePermission.requestPermission();
-/// bool ready = await FlutterBluePlus.blePermission.isReady();
+/// await FlutterBluePlus.permission.requestPermission();
+/// bool ready = await FlutterBluePlus.permission.isReady();
 /// ```
 class BlePermission {
   static const MethodChannel _channel = MethodChannel('flutter_blue_plus_permission');
@@ -55,7 +55,7 @@ class BlePermission {
   /// Check if location services need to be enabled.
   /// Android only (Android 6.0-9.0 / API 23-30).
   Future<bool> isNeedLocationService() async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return (await _channel.invokeMethod<bool>("isNeedLocationService")) ?? false;
     }
     return false;
@@ -64,7 +64,7 @@ class BlePermission {
   /// Whether GPS/location service is enabled.
   /// Android only (API 23-30 and HarmonyOS).
   Future<bool> get isLocationServiceEnable async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return (await _channel.invokeMethod<bool>("isLocationServiceEnable")) ?? false;
     }
     throw UnsupportedError("isLocationServiceEnable is only supported on Android");
@@ -73,7 +73,7 @@ class BlePermission {
   /// Open location service settings.
   /// Android only (API 23-30 and HarmonyOS).
   Future<bool> openLocationService() async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return (await _channel.invokeMethod<bool>("openLocationService")) ?? false;
     }
     throw UnsupportedError("openLocationService is only supported on Android");
@@ -99,7 +99,7 @@ class BlePermission {
   /// Whether Bluetooth tethering is enabled.
   /// Android only.
   Future<bool> isBluetoothTetheringEnable() async {
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       return (await _channel.invokeMethod<bool>("isBluetoothTetheringEnable")) ?? false;
     }
     throw UnsupportedError("isBluetoothTetheringEnable is only supported on Android");
@@ -108,7 +108,7 @@ class BlePermission {
   /// Whether personal hotspot is enabled.
   /// iOS only.
   Future<bool> isPersonalHotspotEnabled() async {
-    if (Platform.isIOS) {
+    if (!kIsWeb && Platform.isIOS) {
       return (await _channel.invokeMethod<bool>("isPersonalHotspotEnabled")) ?? false;
     }
     throw UnsupportedError("isPersonalHotspotEnabled is only supported on iOS");
