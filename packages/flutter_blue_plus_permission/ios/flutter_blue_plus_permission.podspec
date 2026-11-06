@@ -5,13 +5,13 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_blue_plus_permission'
   s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.summary          = 'BLE permission helper for flutter_blue_plus.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+BLE permission and Bluetooth adapter helpers for flutter_blue_plus on iOS.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/shingohu/flutter_blue_plus'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'shingo' => 'shingohu@163.com' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
