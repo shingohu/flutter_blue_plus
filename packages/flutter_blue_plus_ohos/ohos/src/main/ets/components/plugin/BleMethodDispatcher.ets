@@ -123,10 +123,12 @@ export default class BleMethodDispatcher {
     handlers.set('createBond', (c, r) => this.handleCreateBond(c, r));
     handlers.set('removeBond', (c, r) => this.handleRemoveBond(c, r));
     handlers.set('clearGattCache', (c, r) => this.handleClearGattCache(c, r));
-    // OHOS BLE 接口未暴露连接优先级/PHY 设置 API，
-    // 占位返回成功以保持 API 兼容（底层不生效）。
-    handlers.set('requestConnectionPriority', async (c, r) => { r.success(true); });
-    handlers.set('setPreferredPhy', async (c, r) => { r.success(true); });
+    // Connection priority / PHY setting are implemented via runtime-probed
+    // GattClientDevice.updateConnectionParam (API 22+) and setPhy (API 23+);
+    // on older systems they degrade to a logged no-op (see BleGattManager).
+    handlers.set('requestConnectionPriority',
+      (c, r) => this.handleRequestConnectionPriority(c, r));
+    handlers.set('setPreferredPhy', (c, r) => this.handleSetPreferredPhy(c, r));
     this._methodHandlers = handlers;
     return handlers;
   }
@@ -432,6 +434,16 @@ export default class BleMethodDispatcher {
   /** 处理 ClearGattCache：委托 GattManager。 */
   private async handleClearGattCache(call: MethodCall, result: MethodResult): Promise<void> {
     await this.plugin.gattManager.clearGattCache(call, result);
+  }
+
+  /** 处理 RequestConnectionPriority：委托 GattManager。 */
+  private async handleRequestConnectionPriority(call: MethodCall, result: MethodResult): Promise<void> {
+    await this.plugin.gattManager.requestConnectionPriority(call, result);
+  }
+
+  /** 处理 SetPreferredPhy：委托 GattManager。 */
+  private async handleSetPreferredPhy(call: MethodCall, result: MethodResult): Promise<void> {
+    await this.plugin.gattManager.setPreferredPhy(call, result);
   }
 
   /** 处理 setNotifyValue：开启/关闭特征通知，并写入 BleUtils.CCCD 描述符。 */

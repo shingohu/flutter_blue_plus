@@ -305,3 +305,26 @@ test('notification identity rejects absent characteristics and obsolete duplicat
     /not in current services/);
   assert.equal(Shared.getInstanceId({ ...other }, services), 17);
 });
+
+test('API 18+ without characteristicValueHandle stays on the reference-identity path', () => {
+  const f = fixture(); // deviceInfo.sdkApiVersion = 20
+  const Shared = f.load('./BleGattShared').default;
+  const noHandle = { ...f.characteristic };
+  delete noHandle.characteristicValueHandle;
+  const services = [{ serviceUuid: '180f', isPrimary: true, characteristics: [noHandle] }];
+
+  // The SDK declares the handle as optional: missing must normalize to a
+  // numeric instance id (never undefined leaking into the Dart contract).
+  assert.equal(Shared.getInstanceId(noHandle, services), 0);
+  assert.equal(Shared.bmBluetoothCharacteristic('device', noHandle, services).get('instance_id'), 0);
+
+  // Duplicate UUIDs without handles resolve by object identity, as on old APIs.
+  const clone = { ...noHandle };
+  const duplicates = [{ serviceUuid: '180f', isPrimary: true, characteristics: [noHandle, clone] }];
+  assert.equal(Shared.getInstanceId(noHandle, duplicates), 1);
+  assert.equal(Shared.getInstanceId(clone, duplicates), 2);
+
+  // A cached handle must not be guessed against a handle-less discovery tree.
+  assert.throws(() => Shared.getInstanceId(f.characteristic, duplicates),
+    /Obsolete characteristic handle/);
+});

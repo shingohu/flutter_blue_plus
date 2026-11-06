@@ -121,7 +121,8 @@ export class GattWriteContext {
 export default class BleGattShared {
   /**
    * 计算特征在所属服务中的实例 ID（用于区分同 UUID 多特征）。
-   * API>=18 对重复 UUID 使用 characteristicValueHandle；否则仅接受可证明的对象身份。
+   * API>=18 且平台确实提供 characteristicValueHandle 时用它区分重复 UUID；
+   * 该字段在 SDK 中是可选的，缺失或为 0 时退化为仅接受可证明的对象身份。
    * 跨所有同 UUID 服务计算重复实例，唯一实例返回 0。
    * @param target - 目标特征
    * @param services - GATT 服务数组
@@ -143,17 +144,22 @@ export default class BleGattShared {
         BleUtils.uuid128(target.characteristicUuid) === BleUtils.uuid128('2a05')) return 0;
       throw new Error('Characteristic not in current services');
     }
-    if (chars.length === 1 && deviceInfo.sdkApiVersion >= 18 &&
-      target.characteristicValueHandle > 0 && chars[0].characteristicValueHandle > 0 &&
-      target.characteristicValueHandle !== chars[0].characteristicValueHandle) {
-      throw new Error('Obsolete characteristic handle');
-    }
-    if (chars.length <= 1) return 0;
-    if (deviceInfo.sdkApiVersion >= 18 && target.characteristicValueHandle > 0) {
-      if (!chars.some(c => c.characteristicValueHandle === target.characteristicValueHandle)) {
+    // SDK 将 characteristicValueHandle 声明为可选字段（API 18+，并非所有设备都提供）。
+    // 统一归一为「0 = 无可用句柄」：句柄缺失时，所有基于句柄的身份判定自动
+    // 退化为对象引用身份，而不是拿 undefined 参与比较或返回给 Dart 层。
+    const targetHandle: number = target.characteristicValueHandle ?? 0;
+    if (chars.length === 1 && deviceInfo.sdkApiVersion >= 18 && targetHandle > 0) {
+      const onlyHandle: number = chars[0]?.characteristicValueHandle ?? 0;
+      if (onlyHandle > 0 && targetHandle !== onlyHandle) {
         throw new Error('Obsolete characteristic handle');
       }
-      return target.characteristicValueHandle;
+    }
+    if (chars.length <= 1) return 0;
+    if (deviceInfo.sdkApiVersion >= 18 && targetHandle > 0) {
+      if (!chars.some(c => (c.characteristicValueHandle ?? 0) === targetHandle)) {
+        throw new Error('Obsolete characteristic handle');
+      }
+      return targetHandle;
     }
     // Older APIs cannot distinguish cloned notifications for identical UUIDs.
     // Reference identity is safe during discovery; never guess from properties.
@@ -187,20 +193,22 @@ export default class BleGattShared {
    */
   static getPrimaryService(services: ble.GattService[],
     characteristic: ble.BLECharacteristic): ble.GattService | null {
+    // 与 getInstanceId 保持一致：句柄缺失（0）时不参与身份判定。
+    const targetHandle: number = characteristic.characteristicValueHandle ?? 0;
     for (const root of services) {
       if (!root.isPrimary) continue;
       for (const candidate of root.characteristics) {
         if (candidate === characteristic || (deviceInfo.sdkApiVersion >= 18 &&
-          characteristic.characteristicValueHandle > 0 &&
-          candidate.characteristicValueHandle === characteristic.characteristicValueHandle)) return null;
+          targetHandle > 0 &&
+          (candidate.characteristicValueHandle ?? 0) === targetHandle)) return null;
       }
     }
     for (const root of services) {
       for (const included of root.includeServices ?? []) {
         for (const candidate of included.characteristics) {
           if (candidate === characteristic || (deviceInfo.sdkApiVersion >= 18 &&
-            characteristic.characteristicValueHandle > 0 &&
-            candidate.characteristicValueHandle === characteristic.characteristicValueHandle)) return root;
+            targetHandle > 0 &&
+            (candidate.characteristicValueHandle ?? 0) === targetHandle)) return root;
         }
       }
     }
