@@ -1,4 +1,4 @@
 
 
-import BLEPermissionPlugin from './src/main/ets/components/plugin/BLEPermissionPlugin';
-export default BLEPermissionPlugin;
+import FlutterBluePlusPermissionPlugin from './src/main/ets/components/plugin/FlutterBluePlusPermissionPlugin';
+export default FlutterBluePlusPermissionPlugin;

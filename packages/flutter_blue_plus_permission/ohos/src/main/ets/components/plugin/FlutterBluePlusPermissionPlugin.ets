@@ -12,8 +12,8 @@ import { access } from '@kit.ConnectivityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { abilityAccessCtrl, bundleManager, common, Context, Permissions } from '@kit.AbilityKit';
 
-/** BLEPermissionPlugin **/
-export default class BLEPermissionPlugin implements FlutterPlugin, MethodCallHandler,AbilityAware {
+/** FlutterBluePlusPermissionPlugin **/
+export default class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCallHandler,AbilityAware {
   private channel: MethodChannel | null = null;
   private context: Context | null = null;
 
@@ -29,7 +29,7 @@ export default class BLEPermissionPlugin implements FlutterPlugin, MethodCallHan
   }
 
   getUniqueClassName(): string {
-    return "BLEPermissionPlugin"
+    return "FlutterBluePlusPermissionPlugin"
   }
 
   onAttachedToEngine(binding: FlutterPluginBinding): void {

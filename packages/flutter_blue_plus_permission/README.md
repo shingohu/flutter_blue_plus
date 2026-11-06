@@ -2,9 +2,10 @@
 
 BLE permission and Bluetooth adapter helpers for [`flutter_blue_plus`][1].
 
-This plugin ships with `flutter_blue_plus` and is included automatically when
-you depend on it. You do **not** need to add it to your `pubspec.yaml`; access
-it through `FlutterBluePlus.permission`.
+This plugin ships with `flutter_blue_plus` as an implementation detail. You do
+**not** need to add it to your `pubspec.yaml`: use the three helpers exposed
+by the main package — `FlutterBluePlus.checkPermission()`,
+`FlutterBluePlus.requestPermission()` and `FlutterBluePlus.openPermission()`.
 
 Supported platforms: Android, iOS, OpenHarmony (OHOS).
 
@@ -14,27 +15,29 @@ Supported platforms: Android, iOS, OpenHarmony (OHOS).
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 // Ask for all BLE-related runtime permissions.
-final granted = await FlutterBluePlus.permission.requestPermission();
+final granted = await FlutterBluePlus.requestPermission();
 
-// Check permissions and adapter state before scanning.
-if (!await FlutterBluePlus.permission.isReady()) {
-  await FlutterBluePlus.permission.openBluetoothAdapter();
+// Check permissions before scanning.
+final ok = await FlutterBluePlus.checkPermission();
+
+// Let the user enable a permanently denied permission in system settings.
+if (!ok) {
+  await FlutterBluePlus.openPermission();
 }
-
-// React to adapter state changes (true = on, false = off, null = unknown).
-FlutterBluePlus.permission.bluetoothAdapterState.addListener(() {
-  final state = FlutterBluePlus.permission.bluetoothAdapterState.value;
-  // ...
-});
 ```
 
-## API
+## Implementation API (internal)
+
+The table below documents `FlutterBluePlusPermission.instance`, the
+implementation class. The singleton and its members are **not** part of the
+public `flutter_blue_plus` API — the main package exposes its own static
+`checkPermission()`, `requestPermission()` and `openPermission()` wrappers.
 
 | Member | Description | Platform |
 | --- | --- | --- |
 | `requestPermission()` | Request all BLE-related permissions; returns whether they were granted | all |
 | `checkPermission()` | Whether BLE permissions are currently granted | all |
-| `openPermission()` | Open app settings for manual permission changes | all |
+| `openPermission()` | Open app settings for manual permission changes; on Android/iOS resolves only after the user returns | all |
 | `isReady()` | Whether all required permissions and adapter settings are satisfied | all |
 | `openBluetoothAdapter()` | Enable the adapter (Android) or open Settings (iOS) | all |
 | `isBluetoothAdapterEnable` | Whether the adapter is currently on | all |

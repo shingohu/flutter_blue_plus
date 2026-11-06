@@ -20,9 +20,9 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.shingo.ble
-        pluginClass: BLEPermissionPlugin
+        package: com.shingo.flutter_blue_plus_permission
+        pluginClass: FlutterBluePlusPermissionPlugin
       ios:
-        pluginClass: BLEPermissionPlugin
+        pluginClass: FlutterBluePlusPermissionPlugin
       ohos:
-        pluginClass: BLEPermissionPlugin
+        pluginClass: FlutterBluePlusPermissionPlugin

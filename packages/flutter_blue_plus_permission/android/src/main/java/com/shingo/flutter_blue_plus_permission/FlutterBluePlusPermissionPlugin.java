@@ -1,4 +1,4 @@
-package com.shingo.ble;
+package com.shingo.flutter_blue_plus_permission;
 
 import android.Manifest;
 import android.app.Activity;
@@ -38,9 +38,9 @@ import io.flutter.plugin.common.PluginRegistry;
 
 
 /**
- * BLEPermissionPlugin
+ * FlutterBluePlusPermissionPlugin
  */
-public class BLEPermissionPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.RequestPermissionsResultListener, PluginRegistry.ActivityResultListener {
+public class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware, PluginRegistry.RequestPermissionsResultListener, PluginRegistry.ActivityResultListener {
     private MethodChannel channel;
 
     private Context mContext;

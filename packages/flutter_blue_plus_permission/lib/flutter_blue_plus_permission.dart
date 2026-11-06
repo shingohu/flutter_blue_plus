@@ -3,7 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// BLE permission helper for flutter_blue_plus.
+/// Implementation of the BLE permission helpers exposed by `flutter_blue_plus`.
+///
+/// The main package only forwards `checkPermission`, `requestPermission` and
+/// `openPermission`; the remaining members (adapter state, location services,
+/// hotspot probes) are internal to this package.
 ///
 /// Provides methods to request and check BLE-related permissions,
 /// manage Bluetooth adapter state, and handle platform-specific
@@ -11,23 +15,24 @@ import 'package:flutter/services.dart';
 ///
 /// Usage:
 /// ```dart
-/// await FlutterBluePlus.permission.requestPermission();
-/// bool ready = await FlutterBluePlus.permission.isReady();
+/// bool ok = await FlutterBluePlus.checkPermission();
+/// bool granted = await FlutterBluePlus.requestPermission();
+/// await FlutterBluePlus.openPermission();
 /// ```
-class BlePermission {
+class FlutterBluePlusPermission {
   static const MethodChannel _channel = MethodChannel('flutter_blue_plus_permission');
 
   /// Singleton instance
-  static final BlePermission _instance = BlePermission._();
+  static final FlutterBluePlusPermission _instance = FlutterBluePlusPermission._();
 
-  /// Returns the singleton instance of [BlePermission].
-  static BlePermission get instance => _instance;
+  /// Returns the singleton instance of [FlutterBluePlusPermission].
+  static FlutterBluePlusPermission get instance => _instance;
 
   /// Bluetooth adapter state notifier.
   /// Emits `true` when adapter is on, `false` when off, `null` when unknown.
   final ValueNotifier<bool?> bluetoothAdapterState = ValueNotifier(null);
 
-  BlePermission._() {
+  FlutterBluePlusPermission._() {
     _channel.setMethodCallHandler((call) async {
       if (call.method == "onBluetoothAdapterStateChanged") {
         bluetoothAdapterState.value = call.arguments as bool?;
@@ -91,7 +96,13 @@ class BlePermission {
   }
 
   /// Open app settings page to manually enable permissions.
-  /// Note: on iOS, toggling Bluetooth permission will restart the app.
+  ///
+  /// The result is the permission state observed after the user returns, not
+  /// whether the settings page was opened: Android (app details page) and iOS
+  /// (app settings page) complete only on `onActivityResult` /
+  /// `applicationDidBecomeActive`; OHOS resolves when the system settings
+  /// dialog closes. Note: on iOS, toggling Bluetooth permission will restart
+  /// the app, so the returned future may never complete.
   Future<bool> openPermission() async {
     return (await _channel.invokeMethod<bool>("openPermission")) ?? false;
   }

@@ -2,7 +2,7 @@ import Flutter
 import UIKit
 import CoreBluetooth
 
-public class BLEPermissionPlugin: NSObject, FlutterPlugin {
+public class FlutterBluePlusPermissionPlugin: NSObject, FlutterPlugin {
     
     
     
@@ -16,11 +16,11 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
     
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "flutter_blue_plus_permission", binaryMessenger: registrar.messenger())
-    let instance = BLEPermissionPlugin()
+    let instance = FlutterBluePlusPermissionPlugin()
     instance.channel = channel
     registrar.addMethodCallDelegate(instance, channel: channel)
     registrar.addApplicationDelegate(instance)
-    BLEPermissionManager.INSTANCE.setStateCallbackListener { state in
+    FlutterBluePlusPermissionManager.INSTANCE.setStateCallbackListener { state in
           channel.invokeMethod("onBluetoothAdapterStateChanged", arguments: state == .poweredOn)
     }
   }
@@ -31,7 +31,7 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
         let method = call.method
         if(method == "isBluetoothAdapterEnable"){
             
-            BLEPermissionManager.INSTANCE.isBluetoothAdapterEnable { state in
+            FlutterBluePlusPermissionManager.INSTANCE.isBluetoothAdapterEnable { state in
                 result(state == .poweredOn)
             }
         }else if(method == "requestPermission"){
@@ -39,12 +39,12 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
         }else if(method == "openBluetoothAdapter"){
             openBluetoothAdapter(result: result)
         }else if(method == "isReady"){
-            let hasPermission = BLEPermissionManager.INSTANCE.hasPermission()
-            BLEPermissionManager.INSTANCE.isBluetoothAdapterEnable { state in
+            let hasPermission = FlutterBluePlusPermissionManager.INSTANCE.hasPermission()
+            FlutterBluePlusPermissionManager.INSTANCE.isBluetoothAdapterEnable { state in
                 result(hasPermission&&state == .poweredOn)
             }
         }else if(method == "checkPermission"){
-            result(BLEPermissionManager.INSTANCE.hasPermission())
+            result(FlutterBluePlusPermissionManager.INSTANCE.hasPermission())
         }else if(method == "openPermission"){
             openBluetoothPermission(result: result)
         }else if(method == "isPersonalHotspotEnabled"){
@@ -55,11 +55,11 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
     
     public func applicationDidBecomeActive(_ application: UIApplication) {
         if(bluetoothAdapterCallback != nil){
-            bluetoothAdapterCallback!(BLEPermissionManager.INSTANCE.isBluetoothAdapterEnable())
+            bluetoothAdapterCallback!(FlutterBluePlusPermissionManager.INSTANCE.isBluetoothAdapterEnable())
             bluetoothAdapterCallback = nil
         }
         if(bluetoothPermissionCallback != nil){
-            bluetoothPermissionCallback!(BLEPermissionManager.INSTANCE.hasPermission())
+            bluetoothPermissionCallback!(FlutterBluePlusPermissionManager.INSTANCE.hasPermission())
             bluetoothPermissionCallback = nil
         }
     }
@@ -105,7 +105,7 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
     
     
     func requestPermission(result:@escaping FlutterResult){
-        BLEPermissionManager.INSTANCE.requestPermission { hasPermission in
+        FlutterBluePlusPermissionManager.INSTANCE.requestPermission { hasPermission in
                result(hasPermission)
            }
        }

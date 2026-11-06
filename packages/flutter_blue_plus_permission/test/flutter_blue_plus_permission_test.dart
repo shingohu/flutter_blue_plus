@@ -27,8 +27,8 @@ void main() {
   });
 
   test('exposes a singleton with an unknown initial adapter state', () {
-    expect(identical(BlePermission.instance, BlePermission.instance), isTrue);
-    expect(BlePermission.instance.bluetoothAdapterState.value, isNull);
+    expect(identical(FlutterBluePlusPermission.instance, FlutterBluePlusPermission.instance), isTrue);
+    expect(FlutterBluePlusPermission.instance.bluetoothAdapterState.value, isNull);
   });
 
   test('routes method calls through the renamed channel', () async {
@@ -38,9 +38,10 @@ void main() {
       return codec.encodeSuccessEnvelope(true);
     });
 
-    expect(await BlePermission.instance.requestPermission(), isTrue);
-    expect(await BlePermission.instance.checkPermission(), isTrue);
-    expect(calls, <String>['requestPermission', 'checkPermission']);
+    expect(await FlutterBluePlusPermission.instance.requestPermission(), isTrue);
+    expect(await FlutterBluePlusPermission.instance.checkPermission(), isTrue);
+    expect(await FlutterBluePlusPermission.instance.openPermission(), isTrue);
+    expect(calls, <String>['requestPermission', 'checkPermission', 'openPermission']);
   });
 
   // The MethodChannel name must stay in sync with the Android, iOS and OHOS
@@ -55,7 +56,7 @@ void main() {
       return codec.encodeSuccessEnvelope(true);
     });
 
-    expect(await BlePermission.instance.isReady(), isTrue);
+    expect(await FlutterBluePlusPermission.instance.isReady(), isTrue);
     expect(legacyCalls, 0);
   });
 
@@ -69,11 +70,11 @@ void main() {
       return codec.encodeSuccessEnvelope(true);
     });
 
-    expect(await BlePermission.instance.isNeedLocationService(), isFalse);
-    await expectLater(BlePermission.instance.isLocationServiceEnable, throwsUnsupportedError);
-    await expectLater(BlePermission.instance.openLocationService(), throwsUnsupportedError);
-    await expectLater(BlePermission.instance.isBluetoothTetheringEnable(), throwsUnsupportedError);
-    await expectLater(BlePermission.instance.isPersonalHotspotEnabled(), throwsUnsupportedError);
+    expect(await FlutterBluePlusPermission.instance.isNeedLocationService(), isFalse);
+    await expectLater(FlutterBluePlusPermission.instance.isLocationServiceEnable, throwsUnsupportedError);
+    await expectLater(FlutterBluePlusPermission.instance.openLocationService(), throwsUnsupportedError);
+    await expectLater(FlutterBluePlusPermission.instance.isBluetoothTetheringEnable(), throwsUnsupportedError);
+    await expectLater(FlutterBluePlusPermission.instance.isPersonalHotspotEnabled(), throwsUnsupportedError);
     expect(calls, 0);
   });
 }

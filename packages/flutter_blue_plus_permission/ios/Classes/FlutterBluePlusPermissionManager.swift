@@ -1,6 +1,6 @@
 //
-//  BLEManager.swift
-//  ble
+//  FlutterBluePlusPermissionManager.swift
+//  flutter_blue_plus_permission
 //
 //  Created by shingohu on 2023/9/22.
 //
@@ -12,7 +12,7 @@ import CoreBluetooth
 typealias PermissionCallback = (Bool) -> ()
 typealias CBManagerStateCallback = (CBManagerState) -> ()
 
-class BLEPermissionManager: NSObject,CBCentralManagerDelegate {
+class FlutterBluePlusPermissionManager: NSObject,CBCentralManagerDelegate {
     
     
     
@@ -31,7 +31,7 @@ class BLEPermissionManager: NSObject,CBCentralManagerDelegate {
     
 
     
-    static let INSTANCE:BLEPermissionManager = BLEPermissionManager()
+    static let INSTANCE:FlutterBluePlusPermissionManager = FlutterBluePlusPermissionManager()
     
     
     

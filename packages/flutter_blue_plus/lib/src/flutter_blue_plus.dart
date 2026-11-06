@@ -103,16 +103,58 @@ class FlutterBluePlus {
   /// The current operation queue mode. See: setOperationQueueMode
   static OperationQueueMode get operationQueueMode => _operationQueueMode;
 
-  /// BLE permission helper.
+  /// Whether the BLE-related runtime permissions are currently granted.
   ///
-  /// Provides methods to request/check BLE permissions, manage Bluetooth
-  /// adapter state, and handle platform-specific requirements.
+  /// Returns `false` when a permission is missing or when the platform
+  /// returns no result. Use [requestPermission] to ask the user for the
+  /// missing permissions.
   ///
-  /// ```dart
-  /// await FlutterBluePlus.permission.requestPermission();
-  /// bool ready = await FlutterBluePlus.permission.isReady();
-  /// ```
-  static BlePermission get permission => BlePermission.instance;
+  /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
+  /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
+  /// call throws `MissingPluginException`.
+  static Future<bool> checkPermission() {
+    return FlutterBluePlusPermission.instance.checkPermission();
+  }
+
+  /// Requests the BLE-related runtime permissions from the user.
+  ///
+  /// Returns whether the permissions are granted after the request. On
+  /// Android and OHOS this needs a foreground Activity / UIAbility and may
+  /// show a system dialog. On iOS, changing the Bluetooth permission in
+  /// Settings may restart the app.
+  ///
+  /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
+  /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
+  /// call throws `MissingPluginException`.
+  static Future<bool> requestPermission() {
+    return FlutterBluePlusPermission.instance.requestPermission();
+  }
+
+  /// Opens the system settings page so the user can grant the BLE-related
+  /// permissions manually.
+  ///
+  /// Use this after [requestPermission] returns `false`, for example when the
+  /// user chose "don't ask again". The returned value is the permission state
+  /// observed when the user comes back, **not** whether the settings page was
+  /// opened:
+  /// - Android opens the app details page. The future completes only when the
+  ///   user returns from that screen.
+  /// - iOS opens the app settings page. The future completes when the app
+  ///   becomes active again; changing the Bluetooth permission may restart the
+  ///   app, in which case the future never completes.
+  /// - OpenHarmony (OHOS) opens the system permission settings dialog and
+  ///   resolves as soon as it closes.
+  ///
+  /// Returns `false` when no foreground Activity / UIAbility is available,
+  /// when the platform returns no result, or when the permission is still
+  /// missing.
+  ///
+  /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
+  /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
+  /// call throws `MissingPluginException`.
+  static Future<bool> openPermission() {
+    return FlutterBluePlusPermission.instance.openPermission();
+  }
 
   /// Sets how BLE operations are queued.
   ///

@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.shingo.ble_permission">
+    package="com.shingo.flutter_blue_plus_permission">
 
 
     <!-- legacy for Android 11 or lower -->

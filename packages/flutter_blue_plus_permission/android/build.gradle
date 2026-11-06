@@ -1,4 +1,4 @@
-group 'com.shingo.ble_permission'
+group 'com.shingo.flutter_blue_plus_permission'
 version '1.0'
 
 buildscript {
@@ -25,7 +25,7 @@ apply plugin: 'com.android.library'
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace 'com.shingo.ble_permission'
+        namespace 'com.shingo.flutter_blue_plus_permission'
     }
 
     compileSdkVersion 36
