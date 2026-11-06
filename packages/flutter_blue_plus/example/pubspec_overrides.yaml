@@ -1,0 +1,28 @@
+# Local development overrides for the example app.
+#
+# The main package pins its federated dependencies to a git tag so downstream
+# consumers resolve the whole set from one source revision. The example app
+# lives inside that package and must use the sibling working copies instead:
+# otherwise it resolves the published tag snapshot, which contains neither
+# unreleased local changes nor renamed packages.
+#
+# pubspec_overrides.yaml in the main package does not propagate to dependents,
+# so the example needs its own copy. Publishing ignores this file.
+
+dependency_overrides:
+  flutter_blue_plus_platform_interface:
+    path: ../../flutter_blue_plus_platform_interface
+  flutter_blue_plus_android:
+    path: ../../flutter_blue_plus_android
+  flutter_blue_plus_darwin:
+    path: ../../flutter_blue_plus_darwin
+  flutter_blue_plus_linux:
+    path: ../../flutter_blue_plus_linux
+  flutter_blue_plus_web:
+    path: ../../flutter_blue_plus_web
+  flutter_blue_plus_winrt:
+    path: ../../flutter_blue_plus_winrt
+  flutter_blue_plus_ohos:
+    path: ../../flutter_blue_plus_ohos
+  flutter_blue_plus_permission:
+    path: ../../flutter_blue_plus_permission

@@ -15,7 +15,7 @@ import 'package:flutter/services.dart';
 /// bool ready = await FlutterBluePlus.blePermission.isReady();
 /// ```
 class BlePermission {
-  static const MethodChannel _channel = MethodChannel('ble_permission');
+  static const MethodChannel _channel = MethodChannel('flutter_blue_plus_permission');
 
   /// Singleton instance
   static final BlePermission _instance = BlePermission._();

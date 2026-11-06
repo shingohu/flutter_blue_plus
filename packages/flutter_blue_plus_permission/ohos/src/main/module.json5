@@ -1,6 +1,6 @@
 {
   "module": {
-    "name": "ble_permission",
+    "name": "flutter_blue_plus_permission",
     "type": "har",
     "deviceTypes": [
       "default",

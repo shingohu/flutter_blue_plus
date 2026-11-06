@@ -27,4 +27,6 @@ dependency_overrides:
     path: ../flutter_blue_plus_winrt
   flutter_blue_plus_ohos:
     path: ../flutter_blue_plus_ohos
+  flutter_blue_plus_permission:
+    path: ../flutter_blue_plus_permission
 

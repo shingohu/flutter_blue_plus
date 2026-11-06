@@ -121,7 +121,7 @@ public class BLEPermissionPlugin implements FlutterPlugin, MethodCallHandler, Ac
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "ble_permission");
+        channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_blue_plus_permission");
         channel.setMethodCallHandler(this);
         mContext = flutterPluginBinding.getApplicationContext();
         registerBluetoothState(mContext);

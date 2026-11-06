@@ -15,7 +15,7 @@ public class BLEPermissionPlugin: NSObject, FlutterPlugin {
     
     
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "ble_permission", binaryMessenger: registrar.messenger())
+    let channel = FlutterMethodChannel(name: "flutter_blue_plus_permission", binaryMessenger: registrar.messenger())
     let instance = BLEPermissionPlugin()
     instance.channel = channel
     registrar.addMethodCallDelegate(instance, channel: channel)

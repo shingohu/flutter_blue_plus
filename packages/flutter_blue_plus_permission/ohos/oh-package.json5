@@ -1,5 +1,5 @@
 {
-  "name": "ble_permission",
+  "name": "flutter_blue_plus_permission",
   "version": "1.0.0",
   "description": "Please describe the basic information.",
   "main": "index.ets",

@@ -33,7 +33,7 @@ export default class BLEPermissionPlugin implements FlutterPlugin, MethodCallHan
   }
 
   onAttachedToEngine(binding: FlutterPluginBinding): void {
-    this.channel = new MethodChannel(binding.getBinaryMessenger(), "ble_permission");
+    this.channel = new MethodChannel(binding.getBinaryMessenger(), "flutter_blue_plus_permission");
     this.channel.setMethodCallHandler(this)
     this.registerBluetoothState()
   }

@@ -1,4 +1,4 @@
-name: ble_permission
+name: flutter_blue_plus_permission
 description: BLE permission helper for flutter_blue_plus.
 version: 0.0.1
 
