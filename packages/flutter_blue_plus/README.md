@@ -90,7 +90,7 @@ same repository ref. Use the app-facing package as the only direct dependency:
 flutter_blue_plus:
   git:
     url: https://github.com/shingohu/flutter_blue_plus.git
-    ref: 2.0.2
+    ref: 2.0.3
     path: packages/flutter_blue_plus
 ```
 

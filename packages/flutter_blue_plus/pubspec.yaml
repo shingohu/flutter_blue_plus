@@ -26,42 +26,42 @@ dependencies:
   flutter_blue_plus_platform_interface:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_platform_interface
   flutter_blue_plus_android:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_android
   flutter_blue_plus_darwin:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_darwin
   flutter_blue_plus_linux:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_linux
   flutter_blue_plus_web:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_web
   flutter_blue_plus_winrt:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_winrt
   flutter_blue_plus_ohos:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_ohos
   flutter_blue_plus_permission:
     git:
       url: https://github.com/shingohu/flutter_blue_plus.git
-      ref: 2.0.2
+      ref: 2.0.3
       path: packages/flutter_blue_plus_permission
 
 dev_dependencies:
