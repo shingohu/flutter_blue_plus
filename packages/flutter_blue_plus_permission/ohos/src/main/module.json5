@@ -1,0 +1,12 @@
+{
+  "module": {
+    "name": "flutter_blue_plus_permission",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet"
+    ],
+    "requestPermissions": [
+    ]
+  }
+}

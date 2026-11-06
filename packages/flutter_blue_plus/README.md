@@ -112,46 +112,45 @@ flutter_blue_plus_ohos: ^9.0.0
 
 ## BLE Permission
 
-flutter_blue_plus includes a built-in BLE permission helper accessible via `FlutterBluePlus.blePermission`.
+`flutter_blue_plus` exposes three helpers for the BLE runtime permissions on
+Android, iOS and OpenHarmony (OHOS):
 
 ```dart
-// Request BLE permissions
-await FlutterBluePlus.blePermission.requestPermission();
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-// Check if permissions are granted
-bool ok = await FlutterBluePlus.blePermission.checkPermission();
+// Ask the user for the missing BLE permissions.
+bool granted = await FlutterBluePlus.requestPermission();
 
-// Check if Bluetooth adapter is on
-bool on = await FlutterBluePlus.blePermission.isBluetoothAdapterEnable;
+// Check without prompting.
+bool ok = await FlutterBluePlus.checkPermission();
 
-// Check if everything is ready (permissions + adapter)
-bool ready = await FlutterBluePlus.blePermission.isReady();
-
-// Open Bluetooth adapter settings
-await FlutterBluePlus.blePermission.openBluetoothAdapter();
-
-// Open app permission settings
-await FlutterBluePlus.blePermission.openPermission();
-
-// Listen to adapter state changes
-FlutterBluePlus.blePermission.bluetoothAdapterState.addListener(() {
-  bool? state = FlutterBluePlus.blePermission.bluetoothAdapterState.value;
-});
+// If the user denied the permission permanently, open the system settings.
+if (!granted) {
+  await FlutterBluePlus.openPermission();
+}
 ```
 
 | Method | Android | iOS | OHOS | Description |
 |--------|---------|-----|------|-------------|
-| `requestPermission()` | ✔️ | ✔️ | ✔️ | Request BLE-related permissions |
-| `checkPermission()` | ✔️ | ✔️ | ✔️ | Check if BLE permissions are granted |
-| `openPermission()` | ✔️ | ✔️ | ✔️ | Open app permission settings page |
-| `openBluetoothAdapter()` | ✔️ | ✔️ | ✔️ | Open Bluetooth adapter (iOS → Settings) |
-| `isBluetoothAdapterEnable` | ✔️ | ✔️ | ✔️ | Check if Bluetooth adapter is on |
-| `isReady()` | ✔️ | ✔️ | ✔️ | Check all permissions & settings are ready |
-| `isNeedLocationService()` | ✔️ | ❌ | ❌ | Check if location service is needed |
-| `isLocationServiceEnable` | ✔️ | ❌ | ❌ | Check if GPS/location is enabled |
-| `openLocationService()` | ✔️ | ❌ | ❌ | Open location service settings |
-| `isBluetoothTetheringEnable()` | ✔️ | ❌ | ❌ | Check Bluetooth tethering state |
-| `isPersonalHotspotEnabled()` | ❌ | ✔️ | ❌ | Check personal hotspot state |
+| `FlutterBluePlus.requestPermission()` | ✔️ | ✔️ | ✔️ | Request BLE-related permissions; returns whether they are granted |
+| `FlutterBluePlus.checkPermission()` | ✔️ | ✔️ | ✔️ | Check whether BLE permissions are granted, without prompting |
+| `FlutterBluePlus.openPermission()` | ✔️ | ✔️ | ✔️ | Open system settings so the user can grant the permissions manually |
+
+All three return `false` when a permission is missing or the platform call
+returns no result. On Android and OHOS `requestPermission()` needs a
+foreground Activity / UIAbility and may show a system dialog; on iOS changing
+the Bluetooth permission in Settings may restart the app.
+
+`openPermission()` differs from the other two: its result is the permission
+state observed **after the user returns to the app**. On Android (app details
+page) and iOS (app settings page) the future stays pending while the settings
+screen is in the foreground — and on iOS it may never complete if changing the
+permission restarts the app. OHOS resolves as soon as the system permission
+settings dialog closes. Android opens the app details page, not a dedicated
+permission screen.
+
+The underlying platform channel is only registered on the three platforms
+above — these methods are not available on Web, Linux, Windows or macOS.
 
 ## ⭐ Stars ⭐
 

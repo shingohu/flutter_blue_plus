@@ -1,28 +1,28 @@
 PODS:
-  - ble_permission (0.0.1):
-    - Flutter
   - Flutter (1.0.0)
   - flutter_blue_plus_darwin (0.0.2):
     - Flutter
     - FlutterMacOS
+  - flutter_blue_plus_permission (0.0.1):
+    - Flutter
 
 DEPENDENCIES:
-  - ble_permission (from `.symlinks/plugins/ble_permission/ios`)
   - Flutter (from `Flutter`)
   - flutter_blue_plus_darwin (from `.symlinks/plugins/flutter_blue_plus_darwin/darwin`)
+  - flutter_blue_plus_permission (from `.symlinks/plugins/flutter_blue_plus_permission/ios`)
 
 EXTERNAL SOURCES:
-  ble_permission:
-    :path: ".symlinks/plugins/ble_permission/ios"
   Flutter:
     :path: Flutter
   flutter_blue_plus_darwin:
     :path: ".symlinks/plugins/flutter_blue_plus_darwin/darwin"
+  flutter_blue_plus_permission:
+    :path: ".symlinks/plugins/flutter_blue_plus_permission/ios"
 
 SPEC CHECKSUMS:
-  ble_permission: 30707674e2c8e85ba3aeb06cecf9051a3c6a4b13
-  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_blue_plus_darwin: 27a854ade6e4da048bf753c01c8383ad27d99569
+  flutter_blue_plus_permission: c2349cd2e5c1acd76112152d06a8bc67dd6ba9b3
 
 PODFILE CHECKSUM: 819463e6a0290f5a72f145ba7cde16e8b6ef0796
 
