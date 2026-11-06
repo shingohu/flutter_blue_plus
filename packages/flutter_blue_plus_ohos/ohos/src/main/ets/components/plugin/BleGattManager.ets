@@ -16,7 +16,7 @@
 import { MethodCall, MethodResult } from '@ohos/flutter_ohos';
 import { ble } from '@kit.ConnectivityKit';
 import { List } from '@kit.ArkTS';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import BleUtils from './BleUtils';
 import BleGattShared from './BleGattShared';
@@ -25,7 +25,8 @@ import FlutterBluePlusOhosPlugin from './FlutterBluePlusOhosPlugin';
 /**
  * 蓝牙 GATT 管理器。
  *
- * 集中管理 GATT 服务发现、RSSI/设备名读取、clearGattCache/getPhySupport，
+ * 集中管理 GATT 服务发现、RSSI/设备名读取、clearGattCache/getPhySupport、
+ * 连接优先级与 PHY 设置（requestConnectionPriority/setPreferredPhy），
  * 以及 onCharacteristicReceived/onDiscoveredServices 回调（facade，业务读写委托子 Manager）。
  * MTU 协商逻辑（registerMtuCallback/emitMtuChanged/requestMtu）已剥离至 BleMtuManager；
  * 通知订阅与 BLECharacteristicChange 回调已剥离至 BleNotifyManager。
@@ -120,6 +121,148 @@ export default class BleGattManager {
     } catch (e) {
       BleUtils.log(hilog.LogLevel.ERROR, `getPhySupport failed: ${(e as BusinessError).message}`);
       result.error('getPhySupport', (e as BusinessError).message, null);
+    }
+  }
+
+  /**
+   * Map the Dart BmConnectionPriorityEnum index to the OHOS
+   * ble.ConnectionParam enum (LOW_POWER = 1, BALANCED = 2, HIGH = 3).
+   */
+  private static connectionParamFromIndex(index: number): ble.ConnectionParam {
+    switch (index) {
+      case 0:
+        return ble.ConnectionParam.BALANCED;
+      case 1:
+        return ble.ConnectionParam.HIGH;
+      case 2:
+        return ble.ConnectionParam.LOW_POWER;
+      default:
+        // Unknown index falls back to LOW_POWER, matching the Android
+        // bmConnectionPriorityParse default.
+        return ble.ConnectionParam.LOW_POWER;
+    }
+  }
+
+  /**
+   * Handle requestConnectionPriority: request a connection parameter update
+   * via GattClientDevice.updateConnectionParam (API 22+).
+   *
+   * @param call - method call, args map carries remote_id / connection_priority
+   * @param result - result callback
+   */
+  async requestConnectionPriority(call: MethodCall, result: MethodResult): Promise<void> {
+    let data: Map<string, object | string | number> = call.args as Map<string, object | string | number>;
+    if (data === null || data === undefined) {
+      result.error('requestConnectionPriority', 'invalid remote_id', null);
+      return;
+    }
+    let remoteId: string = data.get('remote_id') as string;
+    if (remoteId === null || remoteId === undefined || typeof remoteId !== 'string' || remoteId.length === 0) {
+      result.error('requestConnectionPriority', 'invalid remote_id', null);
+      return;
+    }
+    let gattMaybe: ble.GattClientDevice | undefined = this.plugin.connectionManager.connectedDevices.get(remoteId);
+    if (gattMaybe === null || gattMaybe === undefined) {
+      BleUtils.log(hilog.LogLevel.ERROR,
+        `requestConnectionPriority failed for remoteId=${remoteId}: device is not connected`);
+      result.error('requestConnectionPriority', 'device is disconnected', null);
+      return;
+    }
+    let gatt: ble.GattClientDevice = gattMaybe;
+    let priorityIndex: number = (data.get('connection_priority') as number | null) ?? -1;
+    // Gate on both the system API version and a method-presence probe: the
+    // version check short-circuits clearly, the probe guards against any
+    // version/method mismatch (and keeps the degrade path unit-testable).
+    if (deviceInfo.sdkApiVersion < 22 || typeof gatt.updateConnectionParam !== 'function') {
+      BleUtils.log(hilog.LogLevel.WARN,
+        `requestConnectionPriority: updateConnectionParam is not available on this system ` +
+          `(api=${deviceInfo.sdkApiVersion}, requires API 22+), no-op for remoteId=${remoteId}`);
+      result.success(true);
+      return;
+    }
+    let mappedParam: ble.ConnectionParam = BleGattManager.connectionParamFromIndex(priorityIndex);
+    try {
+      // Serialize with other GATT ops per device to avoid 2900011 busy errors.
+      await this.plugin.gattCache.runGatt(remoteId, async () => {
+        await gatt.updateConnectionParam(mappedParam);
+      });
+      BleUtils.log(hilog.LogLevel.INFO,
+        `requestConnectionPriority: updateConnectionParam(${mappedParam}) completed for ${remoteId}`);
+      result.success(true);
+    } catch (e) {
+      let error = e as BusinessError;
+      BleUtils.log(hilog.LogLevel.ERROR,
+        `requestConnectionPriority failed for remoteId=${remoteId}: code=${error?.code}, ` +
+          `msg=${error?.message}`);
+      result.error('requestConnectionPriority',
+        `gatt.updateConnectionParam() failed: ${error?.message ?? 'unknown error'}`, null);
+    }
+  }
+
+  /**
+   * Handle setPreferredPhy: set the preferred connection PHY via
+   * GattClientDevice.setPhy (API 23+).
+   *
+   * Value mapping: the Dart Phy mask (le1m = 1, le2m = 2, leCoded = 3) uses
+   * the same numeric values as the OHOS BlePhy enum, so tx/rx are passed
+   * through unchanged; phyOptions (noPreferred = 0, s2 = 1, s8 = 2) maps onto
+   * the optional phyMode field (CodedPhyMode S2 = 1, S8 = 2) and is omitted
+   * for the "no preferred" value.
+   *
+   * @param call - method call, args map carries remote_id / tx_phy / rx_phy / phy_options
+   * @param result - result callback
+   */
+  async setPreferredPhy(call: MethodCall, result: MethodResult): Promise<void> {
+    let data: Map<string, object | string | number> = call.args as Map<string, object | string | number>;
+    if (data === null || data === undefined) {
+      result.error('setPreferredPhy', 'invalid remote_id', null);
+      return;
+    }
+    let remoteId: string = data.get('remote_id') as string;
+    if (remoteId === null || remoteId === undefined || typeof remoteId !== 'string' || remoteId.length === 0) {
+      result.error('setPreferredPhy', 'invalid remote_id', null);
+      return;
+    }
+    let gattMaybe: ble.GattClientDevice | undefined = this.plugin.connectionManager.connectedDevices.get(remoteId);
+    if (gattMaybe === null || gattMaybe === undefined) {
+      BleUtils.log(hilog.LogLevel.ERROR,
+        `setPreferredPhy failed for remoteId=${remoteId}: device is not connected`);
+      result.error('setPreferredPhy', 'device is disconnected', null);
+      return;
+    }
+    let gatt: ble.GattClientDevice = gattMaybe;
+    let txPhy: number = (data.get('tx_phy') as number | null) ?? 1;
+    let rxPhy: number = (data.get('rx_phy') as number | null) ?? 1;
+    let phyOptions: number = (data.get('phy_options') as number | null) ?? 0;
+    // Same dual gate as requestConnectionPriority (version + method probe).
+    if (deviceInfo.sdkApiVersion < 23 || typeof gatt.setPhy !== 'function') {
+      BleUtils.log(hilog.LogLevel.WARN,
+        `setPreferredPhy: setPhy is not available on this system ` +
+          `(api=${deviceInfo.sdkApiVersion}, requires API 23+), no-op for remoteId=${remoteId}`);
+      result.success(true);
+      return;
+    }
+    let phyValue: ble.PhyValue = {
+      txPhy: txPhy as ble.BlePhy,
+      rxPhy: rxPhy as ble.BlePhy
+    };
+    if (phyOptions === 1 || phyOptions === 2) {
+      phyValue.phyMode = phyOptions as ble.CodedPhyMode;
+    }
+    try {
+      // Serialize with other GATT ops per device to avoid 2900011 busy errors.
+      await this.plugin.gattCache.runGatt(remoteId, async () => {
+        await gatt.setPhy(phyValue);
+      });
+      BleUtils.log(hilog.LogLevel.INFO,
+        `setPreferredPhy: setPhy(tx=${txPhy}, rx=${rxPhy}, mode=${phyOptions}) completed for ${remoteId}`);
+      result.success(true);
+    } catch (e) {
+      let error = e as BusinessError;
+      BleUtils.log(hilog.LogLevel.ERROR,
+        `setPreferredPhy failed for remoteId=${remoteId}: code=${error?.code}, msg=${error?.message}`);
+      result.error('setPreferredPhy',
+        `gatt.setPhy() failed: ${error?.message ?? 'unknown error'}`, null);
     }
   }
 

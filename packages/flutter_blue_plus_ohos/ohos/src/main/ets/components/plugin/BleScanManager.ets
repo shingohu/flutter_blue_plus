@@ -169,7 +169,12 @@ export default class BleScanManager {
   /** 按 service UUID 追加过滤器。 */
   private appendServiceFilters(filterArray: ble.ScanFilter[], withServices: List<string>): void {
     for (let i = 0; i < withServices.length; i++) {
-      filterArray.push({ serviceUuid: withServices[i] } as ble.ScanFilter);
+      // Dart sends the SHORTEST uuid form (e.g. '180f'), but ble.ScanFilter
+      // only accepts the canonical 128-bit form — anything else makes
+      // ble.startBLEScan throw BusinessError 401 (Invalid parameter).
+      filterArray.push({
+        serviceUuid: BleUtils.uuid128(withServices[i]),
+      } as ble.ScanFilter);
     }
   }
 
@@ -190,8 +195,11 @@ export default class BleScanManager {
   /** 按制造商数据（manufacturer_id/data/mask）追加过滤器；缺 data 项跳过。 */
   private appendManufacturerDataFilters(filterArray: ble.ScanFilter[],
     withMsd: List<object>): void {
+    // The MethodChannel codec decodes Dart lists into plain ES arrays, not
+    // ArkTS List instances, so elements must be accessed with [] — calling
+    // .get() on a decoded array throws "undefined is not callable".
     for (let i = 0; i < withMsd.length; i++) {
-      let rawMsd: object | null = withMsd.get(i);
+      let rawMsd: object | null = withMsd[i];
       if (rawMsd == null) {
         continue;
       }
@@ -213,8 +221,10 @@ export default class BleScanManager {
   /** 按服务数据（service/data/mask）追加过滤器；缺 service 项跳过。 */
   private appendServiceDataFilters(filterArray: ble.ScanFilter[],
     withServiceData: List<object>): void {
+    // Same codec note as appendManufacturerDataFilters: decoded lists are ES
+    // arrays, index with [] instead of .get().
     for (let i = 0; i < withServiceData.length; i++) {
-      let rawSvcData: object | null = withServiceData.get(i);
+      let rawSvcData: object | null = withServiceData[i];
       if (rawSvcData == null) {
         continue;
       }

@@ -530,10 +530,10 @@ class BluetoothDevice {
     return mtu;
   }
 
-  /// Request connection priority update (Android only)
+  /// Request connection priority update (Android / OHOS only)
   Future<void> requestConnectionPriority({required ConnectionPriority connectionPriorityRequest}) async {
-    // check android
-    if (kIsWeb || !Platform.isAndroid) {
+    // check android / ohos
+    if (kIsWeb || (!Platform.isAndroid && Platform.operatingSystem != 'ohos')) {
       throw FlutterBluePlusException(
           ErrorPlatform.fbp, "requestConnectionPriority", FbpErrorCode.androidOnly.index, "android-only");
     }
@@ -553,7 +553,7 @@ class BluetoothDevice {
     await FlutterBluePlus._invokePlatform(() => FlutterBluePlusPlatform.instance.requestConnectionPriority(request));
   }
 
-  /// Set the preferred connection (Android Only)
+  /// Set the preferred connection (Android / OHOS Only)
   ///   - [txPhy] bitwise OR of all allowed phys for Tx, e.g. (Phy.le2m.mask | Phy.leCoded.mask)
   ///   - [txPhy] bitwise OR of all allowed phys for Rx, e.g. (Phy.le2m.mask | Phy.leCoded.mask)
   ///   - [option] preferred coding to use when transmitting on Phy.leCoded
@@ -563,8 +563,8 @@ class BluetoothDevice {
     required int rxPhy,
     required PhyCoding option,
   }) async {
-    // check android
-    if (kIsWeb || !Platform.isAndroid) {
+    // check android / ohos
+    if (kIsWeb || (!Platform.isAndroid && Platform.operatingSystem != 'ohos')) {
       throw FlutterBluePlusException(
           ErrorPlatform.fbp, "setPreferredPhy", FbpErrorCode.androidOnly.index, "android-only");
     }
