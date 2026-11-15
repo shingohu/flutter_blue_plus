@@ -52,6 +52,19 @@ Android-only members throw `UnsupportedError` on other platforms, except
 `isNeedLocationService()` which returns `false`. On iOS, toggling Bluetooth
 permission in Settings restarts the app.
 
+## iOS authorization boundaries
+
+Only `CBManagerAuthorization.allowedAlways` grants access on iOS 13+.
+`denied` and `restricted` both return `false`; `notDetermined` waits for
+CoreBluetooth's system decision. An authorized app may still have Bluetooth
+powered off: permission and adapter readiness are separate checks.
+
+Run `python3 test/ios_authorization/run.py` from this package on macOS to
+compile the production permission decisions against a fake OS boundary.
+The check uses actual CoreBluetooth enum types and covers resolved and pending
+requests, including restricted access and later OS callbacks. It does not
+access Bluetooth hardware or replace real-device system-dialog testing.
+
 ## License
 
 BSD 3-Clause. See [LICENSE](./LICENSE).

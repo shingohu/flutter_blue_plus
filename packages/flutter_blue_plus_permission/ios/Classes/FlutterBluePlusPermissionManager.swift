@@ -36,7 +36,6 @@ class FlutterBluePlusPermissionManager: NSObject,CBCentralManagerDelegate {
     
     
     private lazy var centralManager = { () -> CBCentralManager in
-           let bundleId =  Bundle.main.bundleIdentifier!
         return CBCentralManager(delegate: self, queue: .main,options:[
             CBCentralManagerOptionShowPowerAlertKey : true,//弹出链接新设备的系统弹窗
         ])
@@ -66,14 +65,14 @@ class FlutterBluePlusPermissionManager: NSObject,CBCentralManagerDelegate {
     
     public func hasPermission()->Bool{
         if #available(iOS 13.1, *) {
-            if( CBCentralManager.authorization == .allowedAlways || CBCentralManager.authorization == .restricted){
+            if( CBCentralManager.authorization == .allowedAlways){
                 return true
             }else{
                 return false
             }
         } else if #available(iOS 13.0, *) {
             
-            if(CBCentralManager().authorization == CBManagerAuthorization.allowedAlways || CBCentralManager().authorization == CBManagerAuthorization.restricted){
+            if(CBCentralManager().authorization == CBManagerAuthorization.allowedAlways){
               return true
             }else{
               return false
@@ -103,19 +102,19 @@ class FlutterBluePlusPermissionManager: NSObject,CBCentralManagerDelegate {
            var notDetermined = true
            
            if #available(iOS 13.1, *) {
-               if( CBCentralManager.authorization == .allowedAlways || CBCentralManager.authorization == .restricted){
+               if( CBCentralManager.authorization == .allowedAlways){
                    permissionCallback(true)
                    notDetermined = false
-               }else  if(CBCentralManager.authorization == .denied){
+               }else  if(CBCentralManager.authorization == .denied || CBCentralManager.authorization == .restricted){
                    permissionCallback(false)
                    notDetermined = false
                }
            } else if #available(iOS 13.0, *) {
-               if(CBCentralManager().authorization == CBManagerAuthorization.allowedAlways || CBCentralManager().authorization == CBManagerAuthorization.restricted){
+               if(CBCentralManager().authorization == CBManagerAuthorization.allowedAlways){
                    permissionCallback(true)
                    notDetermined = false
                    
-               }else if(CBCentralManager().authorization == CBManagerAuthorization.denied){
+               }else if(CBCentralManager().authorization == CBManagerAuthorization.denied || CBCentralManager().authorization == CBManagerAuthorization.restricted){
                    permissionCallback(false)
                    notDetermined = false
                }
