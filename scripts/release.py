@@ -194,8 +194,14 @@ def main():
              f"refs/tags/{version}:refs/tags/{version}"], capture=False)
         head_line = git(*prefix, "ls-remote", "--heads", args.remote, args.branch)
         remote_head = head_line.split()[0] if head_line else ""
+        # With a single exact ref, ls-remote omits the peeled `^{}` line for
+        # annotated tags. Ask for it explicitly, otherwise the tag OBJECT id
+        # (not the commit) is compared with the branch head and verification
+        # fails even though the release was pushed correctly. Lightweight tags
+        # still fall back to the exact-ref line, which is already a commit id.
+        tag_ref = f"refs/tags/{version}"
         tag_lines = git(*prefix, "ls-remote", "--tags", args.remote,
-                        f"refs/tags/{version}").splitlines()
+                        tag_ref, tag_ref + "^{}").splitlines()
         peeled = [line.split()[0] for line in tag_lines if line.endswith("^{}")]
         remote_tag = peeled[0] if peeled else (tag_lines[0].split()[0] if tag_lines else "")
         if remote_head and remote_tag and remote_head == remote_tag:
