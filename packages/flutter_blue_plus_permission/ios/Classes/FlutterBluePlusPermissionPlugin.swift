@@ -45,7 +45,7 @@ public class FlutterBluePlusPermissionPlugin: NSObject, FlutterPlugin {
             }
         }else if(method == "checkPermission"){
             result(FlutterBluePlusPermissionManager.INSTANCE.hasPermission())
-        }else if(method == "openPermission"){
+        }else if(method == "openPermissionSetting"){
             openBluetoothPermission(result: result)
         }else if(method == "isPersonalHotspotEnabled"){
             result(self.isPersonalHotspotEnabled)

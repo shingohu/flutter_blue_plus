@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 /// Implementation of the BLE permission helpers exposed by `flutter_blue_plus`.
 ///
 /// The main package only forwards `checkPermission`, `requestPermission` and
-/// `openPermission`; the remaining members (adapter state, location services,
+/// `openPermissionSetting`; the remaining members (adapter state, location services,
 /// hotspot probes) are internal to this package.
 ///
 /// Provides methods to request and check BLE-related permissions,
@@ -17,7 +17,7 @@ import 'package:flutter/services.dart';
 /// ```dart
 /// bool ok = await FlutterBluePlus.checkPermission();
 /// bool granted = await FlutterBluePlus.requestPermission();
-/// await FlutterBluePlus.openPermission();
+/// await FlutterBluePlus.openPermissionSetting();
 /// ```
 class FlutterBluePlusPermission {
   static const MethodChannel _channel = MethodChannel('flutter_blue_plus_permission');
@@ -43,6 +43,7 @@ class FlutterBluePlusPermission {
   /// Open the Bluetooth adapter.
   /// - Android: opens via system API
   /// - iOS: navigates to Settings
+  /// - OHOS: enables via system API (`access.enableBluetooth()`)
   Future<bool> openBluetoothAdapter() async {
     return (await _channel.invokeMethod<bool>("openBluetoothAdapter")) ?? false;
   }
@@ -103,8 +104,8 @@ class FlutterBluePlusPermission {
   /// `applicationDidBecomeActive`; OHOS resolves when the system settings
   /// dialog closes. Note: on iOS, toggling Bluetooth permission will restart
   /// the app, so the returned future may never complete.
-  Future<bool> openPermission() async {
-    return (await _channel.invokeMethod<bool>("openPermission")) ?? false;
+  Future<bool> openPermissionSetting() async {
+    return (await _channel.invokeMethod<bool>("openPermissionSetting")) ?? false;
   }
 
   /// Whether Bluetooth tethering is enabled.

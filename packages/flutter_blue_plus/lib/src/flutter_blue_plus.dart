@@ -113,7 +113,7 @@ class FlutterBluePlus {
   /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
   /// call throws `MissingPluginException`.
   static Future<bool> checkPermission() {
-    return FlutterBluePlusPermission.instance.checkPermission();
+    return _invokePlatform(() => FlutterBluePlusPermission.instance.checkPermission());
   }
 
   /// Requests the BLE-related runtime permissions from the user.
@@ -127,7 +127,7 @@ class FlutterBluePlus {
   /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
   /// call throws `MissingPluginException`.
   static Future<bool> requestPermission() {
-    return FlutterBluePlusPermission.instance.requestPermission();
+    return _invokePlatform(() => FlutterBluePlusPermission.instance.requestPermission());
   }
 
   /// Opens the system settings page so the user can grant the BLE-related
@@ -152,8 +152,40 @@ class FlutterBluePlus {
   /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
   /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
   /// call throws `MissingPluginException`.
-  static Future<bool> openPermission() {
-    return FlutterBluePlusPermission.instance.openPermission();
+  static Future<bool> openPermissionSetting() {
+    return _invokePlatform(() => FlutterBluePlusPermission.instance.openPermissionSetting());
+  }
+
+  /// Opens the Bluetooth adapter (turns Bluetooth on).
+  ///
+  /// - Android: enables the adapter via a system API, prompting the user for
+  ///   consent when required.
+  /// - iOS: navigates to the system Settings app, as iOS has no public API to
+  ///   enable Bluetooth programmatically.
+  /// - OpenHarmony (OHOS): enables the adapter via the system API
+  ///   (`access.enableBluetooth()`).
+  ///
+  /// Returns `true` when the adapter is on (either already on, or after the
+  /// user enabled it), and `false` when it could not be enabled or the
+  /// platform returns no result.
+  ///
+  /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
+  /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
+  /// call throws `MissingPluginException`.
+  static Future<bool> openBluetoothAdapter() {
+    return _invokePlatform(() => FlutterBluePlusPermission.instance.openBluetoothAdapter());
+  }
+
+  /// Whether the Bluetooth adapter is currently on (powered on).
+  ///
+  /// Returns `true` when Bluetooth is on, `false` when it is off or turning
+  /// off. This queries the platform rather than the cached [adapterStateNow].
+  ///
+  /// Only Android, iOS and OpenHarmony (OHOS) register the underlying
+  /// platform channel; on other platforms (Web, Linux, Windows, macOS) the
+  /// call throws `MissingPluginException`.
+  static Future<bool> isBluetoothAdapterOn() {
+    return _invokePlatform(() => FlutterBluePlusPermission.instance.isBluetoothAdapterEnable);
   }
 
   /// Sets how BLE operations are queued.

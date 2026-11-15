@@ -45,14 +45,36 @@ void main() {
     expect(calls, <String>['requestPermission']);
   });
 
-  test('openPermission forwards to the permission channel', () async {
+  test('openPermissionSetting forwards to the permission channel', () async {
     final calls = <String>[];
     messenger.setMockMessageHandler(channelName, (ByteData? message) async {
       calls.add(codec.decodeMethodCall(message).method);
       return codec.encodeSuccessEnvelope(true);
     });
 
-    expect(await FlutterBluePlus.openPermission(), isTrue);
-    expect(calls, <String>['openPermission']);
+    expect(await FlutterBluePlus.openPermissionSetting(), isTrue);
+    expect(calls, <String>['openPermissionSetting']);
+  });
+
+  test('openBluetoothAdapter forwards to the permission channel', () async {
+    final calls = <String>[];
+    messenger.setMockMessageHandler(channelName, (ByteData? message) async {
+      calls.add(codec.decodeMethodCall(message).method);
+      return codec.encodeSuccessEnvelope(true);
+    });
+
+    expect(await FlutterBluePlus.openBluetoothAdapter(), isTrue);
+    expect(calls, <String>['openBluetoothAdapter']);
+  });
+
+  test('isBluetoothAdapterOn forwards to the permission channel', () async {
+    final calls = <String>[];
+    messenger.setMockMessageHandler(channelName, (ByteData? message) async {
+      calls.add(codec.decodeMethodCall(message).method);
+      return codec.encodeSuccessEnvelope(true);
+    });
+
+    expect(await FlutterBluePlus.isBluetoothAdapterOn(), isTrue);
+    expect(calls, <String>['isBluetoothAdapterEnable']);
   });
 }

@@ -40,8 +40,8 @@ void main() {
 
     expect(await FlutterBluePlusPermission.instance.requestPermission(), isTrue);
     expect(await FlutterBluePlusPermission.instance.checkPermission(), isTrue);
-    expect(await FlutterBluePlusPermission.instance.openPermission(), isTrue);
-    expect(calls, <String>['requestPermission', 'checkPermission', 'openPermission']);
+    expect(await FlutterBluePlusPermission.instance.openPermissionSetting(), isTrue);
+    expect(calls, <String>['requestPermission', 'checkPermission', 'openPermissionSetting']);
   });
 
   // The MethodChannel name must stay in sync with the Android, iOS and OHOS

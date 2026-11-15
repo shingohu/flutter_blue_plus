@@ -112,8 +112,8 @@ flutter_blue_plus_ohos: ^9.0.0
 
 ## BLE Permission
 
-`flutter_blue_plus` exposes three helpers for the BLE runtime permissions on
-Android, iOS and OpenHarmony (OHOS):
+`flutter_blue_plus` exposes five helpers for the BLE runtime permissions and
+adapter state on Android, iOS and OpenHarmony (OHOS):
 
 ```dart
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -126,23 +126,31 @@ bool ok = await FlutterBluePlus.checkPermission();
 
 // If the user denied the permission permanently, open the system settings.
 if (!granted) {
-  await FlutterBluePlus.openPermission();
+  await FlutterBluePlus.openPermissionSetting();
 }
+
+// Turn on the Bluetooth adapter (system API on Android/OHOS, Settings on iOS).
+bool on = await FlutterBluePlus.openBluetoothAdapter();
+
+// Check whether the adapter is currently on (queries the platform).
+bool isOn = await FlutterBluePlus.isBluetoothAdapterOn();
 ```
 
 | Method | Android | iOS | OHOS | Description |
 |--------|---------|-----|------|-------------|
 | `FlutterBluePlus.requestPermission()` | ✔️ | ✔️ | ✔️ | Request BLE-related permissions; returns whether they are granted |
 | `FlutterBluePlus.checkPermission()` | ✔️ | ✔️ | ✔️ | Check whether BLE permissions are granted, without prompting |
-| `FlutterBluePlus.openPermission()` | ✔️ | ✔️ | ✔️ | Open system settings so the user can grant the permissions manually |
+| `FlutterBluePlus.openPermissionSetting()` | ✔️ | ✔️ | ✔️ | Open system settings so the user can grant the permissions manually |
+| `FlutterBluePlus.openBluetoothAdapter()` | ✔️ | ✔️ | ✔️ | Turn on the Bluetooth adapter; returns whether it is on |
+| `FlutterBluePlus.isBluetoothAdapterOn()` | ✔️ | ✔️ | ✔️ | Whether the Bluetooth adapter is currently on (queries the platform) |
 
-All three return `false` when a permission is missing or the platform call
-returns no result. On Android and OHOS `requestPermission()` needs a
+The permission helpers return `false` when a permission is missing or the
+platform call returns no result. On Android and OHOS `requestPermission()` needs a
 foreground Activity / UIAbility and may show a system dialog; on iOS changing
 the Bluetooth permission in Settings may restart the app.
 
-`openPermission()` differs from the other two: its result is the permission
-state observed **after the user returns to the app**. On Android (app details
+Unlike `checkPermission()` and `requestPermission()`, `openPermissionSetting()`
+returns the permission state observed **after the user returns to the app**. On Android (app details
 page) and iOS (app settings page) the future stays pending while the settings
 screen is in the foreground — and on iOS it may never complete if changing the
 permission restarts the app. OHOS resolves as soon as the system permission

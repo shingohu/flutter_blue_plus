@@ -63,9 +63,9 @@ export default class FlutterBluePlusPermissionPlugin implements FlutterPlugin, M
       this.requestPermission().then((grant) => {
         result.success(grant)
       })
-    } else if (call.method == "openPermission") {
+    } else if (call.method == "openPermissionSetting") {
       ///打开蓝牙设置页面
-      this.openPermission().then((grant) => {
+      this.openPermissionSetting().then((grant) => {
         result.success(grant)
       });
     } else {
@@ -74,7 +74,7 @@ export default class FlutterBluePlusPermissionPlugin implements FlutterPlugin, M
   }
 
   ///打开蓝牙设置页面
-  async openPermission() {
+  async openPermissionSetting() {
     try {
       let atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
       if (this.context != null) {

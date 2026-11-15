@@ -56,7 +56,7 @@ public class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCal
     Map<Integer, PermissionCallback> openLocationServiceCallbackMap = new HashMap<>();
     /// 蓝牙适配器开启
     Map<Integer, PermissionCallback> openBluetoothAdapterCallbackMap = new HashMap<>();
-    Map<Integer, PermissionCallback> openPermissionCallbackMap = new HashMap<>();
+    Map<Integer, PermissionCallback> openPermissionSettingCallbackMap = new HashMap<>();
 
 
     private static final String BLE_STATE_OFF = "android.bluetooth.BluetoothAdapter.STATE_OFF";
@@ -139,8 +139,8 @@ public class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCal
             result.success(isLocationServiceEnable(mContext));
         } else if ("openLocationService".equals(method)) {
             openLocationService(result);
-        } else if ("openPermission".equals(method)) {
-            openPermission(result);
+        } else if ("openPermissionSetting".equals(method)) {
+            openPermissionSetting(result);
         } else if ("requestPermission".equals(method)) {
             requestPermission(result);
         } else if ("checkPermission".equals(method)) {
@@ -254,16 +254,16 @@ public class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCal
 
     }
 
-    private void openPermission(Result result) {
+    private void openPermissionSetting(Result result) {
         if (mActivity != null) {
             PermissionCallback callback = new PermissionCallback() {
                 @Override
                 void onPermission(boolean hasPermission) {
                     result.success(hasPermission);
-                    openPermissionCallbackMap.remove(result.hashCode());
+                    openPermissionSettingCallbackMap.remove(result.hashCode());
                 }
             };
-            openPermissionCallbackMap.put(result.hashCode(), callback);
+            openPermissionSettingCallbackMap.put(result.hashCode(), callback);
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                     .setData(Uri.fromParts("package", this.mActivity.getPackageName(), null));
             this.mActivity.startActivityForResult(intent, result.hashCode());
@@ -354,8 +354,8 @@ public class FlutterBluePlusPermissionPlugin implements FlutterPlugin, MethodCal
             openBluetoothAdapterCallbackMap.get(requestCode).onPermission(isBluetoothAdapterOpen());
             return true;
         }
-        if (openPermissionCallbackMap.containsKey(requestCode)) {
-            openPermissionCallbackMap.get(requestCode).onPermission(checkBluetoothPermission());
+        if (openPermissionSettingCallbackMap.containsKey(requestCode)) {
+            openPermissionSettingCallbackMap.get(requestCode).onPermission(checkBluetoothPermission());
             return true;
         }
 
