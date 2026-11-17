@@ -1,4 +1,5 @@
 ## Unreleased
+* **[Fix]** Pin the Git permission dependency to 2.0.5 so the renamed permission settings API resolves with its matching implementation.
 * **[Fix]** Fence timed-out connection attempts until native submission and cancellation settle; keep retries and GATT operations isolated during cleanup.
 * **[Fix]** Let turnOn time out while its adapter query is pending, and accept ON events independently of that query.
 * **[Fix]** Cancel operation listeners on native failure, timeout, disconnect, and skipped responses.

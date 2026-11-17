@@ -3,7 +3,10 @@
 // at runtime on device.
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter_blue_plus_platform_interface/flutter_blue_plus_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+final class _PermissionTestPlatform extends FlutterBluePlusPlatform {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +17,7 @@ void main() {
   late TestDefaultBinaryMessenger messenger;
 
   setUp(() {
+    FlutterBluePlusPlatform.instance = _PermissionTestPlatform();
     messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMessageHandler(channelName, null);
